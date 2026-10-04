@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 
 import '../../core/constants.dart';
 import '../../data/models/spot.dart';
+import '../../providers/location_provider.dart';
 import '../../providers/spot_provider.dart';
+import '../widgets/location_permission.dart';
 import '../widgets/spot_card.dart';
 import '../widgets/state_views.dart';
 import 'spot_detail_screen.dart';
@@ -24,7 +26,15 @@ class _ExploreScreenState extends State<ExploreScreen> {
     super.initState();
     final provider = context.read<SpotProvider>();
     _searchCtrl = TextEditingController(text: provider.query);
-    WidgetsBinding.instance.addPostFrameCallback((_) => provider.refresh());
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      provider.refresh();
+      // Jarak: ambil lokasi diam-diam hanya jika izin SUDAH diberikan sebelumnya.
+      final loc = context.read<LocationProvider>();
+      await loc.init();
+      if (!loc.useDemo && await loc.hasPermission()) {
+        await loc.locate(requestPermission: false);
+      }
+    });
   }
 
   @override
@@ -43,7 +53,16 @@ class _ExploreScreenState extends State<ExploreScreen> {
   Widget build(BuildContext context) {
     final p = context.watch<SpotProvider>();
     return Scaffold(
-      appBar: AppBar(title: const Text('Explore Spot')),
+      appBar: AppBar(
+        title: const Text('Explore Spot'),
+        actions: [
+          IconButton(
+            tooltip: 'Gunakan lokasi saya',
+            onPressed: () => requestLocationWithRationale(context),
+            icon: const Icon(Icons.my_location),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           // Kolom pencarian
@@ -116,7 +135,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
         child: ErrorView(message: p.error!, onRetry: p.loadSpots),
       );
     }
-    final spots = p.visibleSpots;
+    // Jika lokasi diketahui: tampilkan jarak & urutkan dari yang terdekat.
+    final loc = context.watch<LocationProvider>();
+    final spots = loc.sortByDistance(p.visibleSpots);
     if (spots.isEmpty) {
       return Center(
         child: EmptyView(
@@ -131,12 +152,25 @@ class _ExploreScreenState extends State<ExploreScreen> {
       onRefresh: p.refresh,
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-        itemCount: spots.length,
+        itemCount: spots.length + 1,
         itemBuilder: (_, i) {
-          final s = spots[i];
+          if (i == 0) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text(
+                loc.position == null
+                    ? 'Urut nama · tap ikon lokasi untuk melihat jarak'
+                    : 'Urut dari terdekat · '
+                          '${loc.isDemo ? 'lokasi demo (Tugu Jogja)' : 'lokasi GPS'}',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            );
+          }
+          final s = spots[i - 1];
           return SpotCard(
             spot: s,
             isFavorite: p.isFavorite(s.id),
+            distanceKm: loc.distanceTo(s),
             onTap: () => _openDetail(s),
           );
         },

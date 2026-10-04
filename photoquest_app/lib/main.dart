@@ -20,8 +20,10 @@ import 'data/repositories/feedback_repository.dart';
 import 'data/repositories/profile_repository.dart';
 import 'data/repositories/spot_repository.dart';
 import 'providers/auth_provider.dart';
+import 'providers/location_provider.dart';
 import 'providers/spot_provider.dart';
 import 'services/biometric_service.dart';
+import 'services/location_service.dart';
 import 'ui/screens/login_screen.dart';
 import 'ui/screens/main_shell.dart';
 import 'ui/screens/register_screen.dart';
@@ -44,9 +46,9 @@ Future<void> main() async {
     apiClient,
   );
 
-  final spotProvider = SpotProvider(
-    SpotRepository(SpotApi(apiClient), SpotDao(db)),
-  );
+  final spotRepository = SpotRepository(SpotApi(apiClient), SpotDao(db));
+  final spotProvider = SpotProvider(spotRepository);
+  final locationProvider = LocationProvider(LocationService(), db);
 
   // Setelah logout, favorit user sebelumnya tidak boleh terlihat user berikutnya.
   authProvider.addListener(() {
@@ -82,7 +84,9 @@ Future<void> main() async {
           value: FeedbackRepository(FeedbackApi(apiClient), jsonCache),
         ),
         ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+        Provider<SpotRepository>.value(value: spotRepository),
         ChangeNotifierProvider<SpotProvider>.value(value: spotProvider),
+        ChangeNotifierProvider<LocationProvider>.value(value: locationProvider),
       ],
       child: const PhotoQuestApp(),
     ),

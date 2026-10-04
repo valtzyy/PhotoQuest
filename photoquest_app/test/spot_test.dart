@@ -13,7 +13,9 @@ import 'package:photoquest_app/data/remote/api_exception.dart';
 import 'package:photoquest_app/data/remote/spot_api.dart';
 import 'package:photoquest_app/data/repositories/cached_result.dart';
 import 'package:photoquest_app/data/repositories/spot_repository.dart';
+import 'package:photoquest_app/providers/location_provider.dart';
 import 'package:photoquest_app/providers/spot_provider.dart';
+import 'package:photoquest_app/services/location_service.dart';
 import 'package:photoquest_app/ui/screens/explore_screen.dart';
 
 Spot _spot(int id, String name, String category) => Spot(
@@ -68,6 +70,17 @@ class _FakeRepo extends SpotRepository {
       throw const ApiException('Sedang offline.', isNetworkError: true);
     }
   }
+}
+
+/// Lokasi palsu: tanpa GPS & sqflite, izin dianggap belum diberikan.
+class _FakeLocation extends LocationProvider {
+  _FakeLocation() : super(LocationService(), DbHelper.instance);
+
+  @override
+  Future<void> init() async {}
+
+  @override
+  Future<bool> hasPermission() async => false;
 }
 
 void main() {
@@ -160,8 +173,13 @@ void main() {
   testWidgets('Explore: chip kategori memfilter daftar', (tester) async {
     final p = SpotProvider(_FakeRepo());
     await tester.pumpWidget(
-      ChangeNotifierProvider.value(
-        value: p,
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<SpotProvider>.value(value: p),
+          ChangeNotifierProvider<LocationProvider>.value(
+            value: _FakeLocation(),
+          ),
+        ],
         child: const MaterialApp(home: ExploreScreen()),
       ),
     );
