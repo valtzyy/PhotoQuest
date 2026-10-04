@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../widgets/state_views.dart';
 import '../widgets/user_avatar.dart';
+import '../widgets/weather_card.dart';
 import 'explore_screen.dart';
 import 'nearby_map_screen.dart';
 
@@ -78,17 +79,8 @@ class HomeTab extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 16),
-                // Kartu cuaca singkat (diisi data Open-Meteo di Fase 6)
-                Card(
-                  color: theme.colorScheme.primaryContainer,
-                  child: const ListTile(
-                    leading: Icon(Icons.wb_twilight, size: 36),
-                    title: Text('Cuaca & Golden Hour'),
-                    subtitle: Text(
-                      'Data cuaca ditampilkan di sini mulai Fase 6',
-                    ),
-                  ),
-                ),
+                // Kartu cuaca singkat + golden hour hari ini (Open-Meteo via backend)
+                const WeatherCard(),
                 const SizedBox(height: 16),
                 Text('Menu', style: theme.textTheme.titleMedium),
                 const SizedBox(height: 8),

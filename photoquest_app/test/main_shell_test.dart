@@ -17,7 +17,14 @@ import 'package:photoquest_app/data/repositories/auth_repository.dart';
 import 'package:photoquest_app/data/repositories/cached_result.dart';
 import 'package:photoquest_app/data/repositories/feedback_repository.dart';
 import 'package:photoquest_app/data/repositories/profile_repository.dart';
+import 'package:photoquest_app/data/local/weather_dao.dart';
+import 'package:photoquest_app/data/models/weather_info.dart';
+import 'package:photoquest_app/data/remote/weather_api.dart';
+import 'package:photoquest_app/data/repositories/weather_repository.dart';
 import 'package:photoquest_app/providers/auth_provider.dart';
+import 'package:photoquest_app/providers/location_provider.dart';
+import 'package:photoquest_app/providers/weather_provider.dart';
+import 'package:photoquest_app/services/location_service.dart';
 import 'package:photoquest_app/services/biometric_service.dart';
 import 'package:photoquest_app/ui/screens/main_shell.dart';
 
@@ -46,6 +53,24 @@ class _FakeFeedbackRepo extends FeedbackRepository {
       const CachedResult(<FeedbackItem>[]);
 }
 
+/// Lokasi palsu (tanpa GPS/sqflite).
+class _FakeLocation extends LocationProvider {
+  _FakeLocation() : super(LocationService(), DbHelper.instance);
+
+  @override
+  Future<void> init() async {}
+}
+
+/// Cuaca palsu: selalu estimasi lokal, tanpa jaringan.
+class _FakeWeatherRepo extends WeatherRepository {
+  _FakeWeatherRepo()
+    : super(WeatherApi(_client), WeatherDao(DbHelper.instance));
+
+  @override
+  Future<CachedResult<WeatherInfo>> get(double lat, double lng) async =>
+      CachedResult(WeatherInfo.estimate(DateTime.now()));
+}
+
 void main() {
   setUpAll(() => initializeDateFormatting('id_ID'));
 
@@ -61,6 +86,10 @@ void main() {
         ChangeNotifierProvider.value(value: auth),
         Provider<ProfileRepository>.value(value: _FakeProfileRepo()),
         Provider<FeedbackRepository>.value(value: _FakeFeedbackRepo()),
+        ChangeNotifierProvider<LocationProvider>.value(value: _FakeLocation()),
+        ChangeNotifierProvider<WeatherProvider>.value(
+          value: WeatherProvider(_FakeWeatherRepo()),
+        ),
       ],
       child: const MaterialApp(home: MainShell()),
     );

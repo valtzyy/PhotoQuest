@@ -12,16 +12,20 @@ import 'data/remote/api_client.dart';
 import 'data/remote/auth_api.dart';
 import 'data/remote/challenge_api.dart';
 import 'data/local/spot_dao.dart';
+import 'data/local/weather_dao.dart';
 import 'data/remote/feedback_api.dart';
 import 'data/remote/spot_api.dart';
+import 'data/remote/weather_api.dart';
 import 'data/remote/user_api.dart';
 import 'data/repositories/auth_repository.dart';
 import 'data/repositories/feedback_repository.dart';
 import 'data/repositories/profile_repository.dart';
 import 'data/repositories/spot_repository.dart';
+import 'data/repositories/weather_repository.dart';
 import 'providers/auth_provider.dart';
 import 'providers/location_provider.dart';
 import 'providers/spot_provider.dart';
+import 'providers/weather_provider.dart';
 import 'services/biometric_service.dart';
 import 'services/location_service.dart';
 import 'ui/screens/login_screen.dart';
@@ -49,6 +53,9 @@ Future<void> main() async {
   final spotRepository = SpotRepository(SpotApi(apiClient), SpotDao(db));
   final spotProvider = SpotProvider(spotRepository);
   final locationProvider = LocationProvider(LocationService(), db);
+  final weatherProvider = WeatherProvider(
+    WeatherRepository(WeatherApi(apiClient), WeatherDao(db)),
+  );
 
   // Setelah logout, favorit user sebelumnya tidak boleh terlihat user berikutnya.
   authProvider.addListener(() {
@@ -87,6 +94,7 @@ Future<void> main() async {
         Provider<SpotRepository>.value(value: spotRepository),
         ChangeNotifierProvider<SpotProvider>.value(value: spotProvider),
         ChangeNotifierProvider<LocationProvider>.value(value: locationProvider),
+        ChangeNotifierProvider<WeatherProvider>.value(value: weatherProvider),
       ],
       child: const PhotoQuestApp(),
     ),
