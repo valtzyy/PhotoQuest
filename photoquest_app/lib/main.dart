@@ -1,13 +1,49 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import 'core/config.dart';
 import 'core/constants.dart';
+import 'core/routes.dart';
 import 'core/theme.dart';
+import 'data/local/secure_store.dart';
 import 'data/remote/api_client.dart';
+import 'data/remote/auth_api.dart';
+import 'data/repositories/auth_repository.dart';
+import 'providers/auth_provider.dart';
+import 'services/biometric_service.dart';
+import 'ui/screens/home_screen.dart';
+import 'ui/screens/login_screen.dart';
+import 'ui/screens/register_screen.dart';
+import 'ui/screens/splash_screen.dart';
 
 void main() {
-  runApp(const PhotoQuestApp());
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Susun dependensi sekali di sini (manual dependency injection).
+  final store = SecureStore();
+  final apiClient = ApiClient(store);
+  final authProvider = AuthProvider(
+    AuthRepository(AuthApi(apiClient), store),
+    BiometricService(),
+    apiClient,
+  );
+
+  // Saat token ditolak server (401): kembali ke Login dari layar mana pun.
+  authProvider.onSessionExpired = (message) {
+    navigatorKey.currentState
+        ?.pushNamedAndRemoveUntil(AppRoutes.login, (_) => false);
+    scaffoldMessengerKey.currentState
+        ?.showSnackBar(SnackBar(content: Text(message)));
+  };
+
+  runApp(
+    MultiProvider(
+      providers: [
+        Provider<ApiClient>.value(value: apiClient),
+        ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+      ],
+      child: const PhotoQuestApp(),
+    ),
+  );
 }
 
 class PhotoQuestApp extends StatelessWidget {
@@ -20,92 +56,15 @@ class PhotoQuestApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      // Fase 1: layar cek koneksi backend. Diganti Splash/Login di Fase 2.
-      home: const HealthCheckScreen(),
-    );
-  }
-}
-
-/// Layar sementara Fase 1 untuk membuktikan app → backend → database terhubung.
-class HealthCheckScreen extends StatefulWidget {
-  const HealthCheckScreen({super.key});
-
-  @override
-  State<HealthCheckScreen> createState() => _HealthCheckScreenState();
-}
-
-class _HealthCheckScreenState extends State<HealthCheckScreen> {
-  final _api = ApiClient();
-  bool _loading = false;
-  String? _error;
-  Map<String, dynamic>? _result;
-
-  @override
-  void initState() {
-    super.initState();
-    _check();
-  }
-
-  Future<void> _check() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-      _result = null;
-    });
-    try {
-      final data = await _api.health();
-      setState(() => _result = data);
-    } on DioException catch (e) {
-      setState(() => _error = e.message ?? e.type.name);
-    } catch (e) {
-      setState(() => _error = e.toString());
-    } finally {
-      setState(() => _loading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(title: const Text('PhotoQuest – Cek Backend')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('Base URL: ${AppConfig.apiBaseUrl}',
-                style: theme.textTheme.bodySmall),
-            const SizedBox(height: 16),
-            if (_loading) const Center(child: CircularProgressIndicator()),
-            if (_error != null)
-              Card(
-                color: theme.colorScheme.errorContainer,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text('Gagal terhubung:\n$_error'),
-                ),
-              ),
-            if (_result != null)
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text(
-                    'Status: ${_result!['status']}\n'
-                    'Database: ${_result!['database']}\n'
-                    'Waktu server: ${_result!['time']}',
-                  ),
-                ),
-              ),
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: _loading ? null : _check,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Coba lagi'),
-            ),
-          ],
-        ),
-      ),
+      navigatorKey: navigatorKey,
+      scaffoldMessengerKey: scaffoldMessengerKey,
+      initialRoute: AppRoutes.splash,
+      routes: {
+        AppRoutes.splash: (_) => const SplashScreen(),
+        AppRoutes.login: (_) => const LoginScreen(),
+        AppRoutes.register: (_) => const RegisterScreen(),
+        AppRoutes.home: (_) => const HomeScreen(),
+      },
     );
   }
 }

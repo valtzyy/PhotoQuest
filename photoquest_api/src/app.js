@@ -29,7 +29,8 @@ app.get('/health', async (req, res) => {
   }
 });
 
-// Route fitur (auth, spots, dll) didaftarkan di sini pada fase-fase berikutnya.
+// Route fitur. Route lain (spots, favorites, dll) ditambahkan pada fase berikutnya.
+app.use('/auth', require('./routes/auth'));
 
 // 404 untuk endpoint yang tidak ada.
 app.use((req, res) => fail(res, 404, `Endpoint ${req.method} ${req.path} tidak ditemukan`));

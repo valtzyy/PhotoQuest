@@ -17,9 +17,13 @@
         android:label="PhotoQuest"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
         android:usesCleartextTraffic="true">
         <!-- usesCleartextTraffic=true agar HP bisa memanggil backend lokal http://IP-LAN:3000
              saat development. Backend produksi (Render) memakai HTTPS. -->
+        <!-- allowBackup=false: token di flutter_secure_storage dienkripsi dengan kunci
+             Android Keystore yang tidak ikut ter-backup; restore backup bisa merusak data. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"

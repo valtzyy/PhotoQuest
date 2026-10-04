@@ -38,7 +38,7 @@ test('Endpoint tidak dikenal -> 404 dengan format { success, data, message }', a
 });
 
 test('Body JSON rusak -> 400', async () => {
-  const res = await fetch(`${baseUrl}/health`, {
+  const res = await fetch(`${baseUrl}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: '{rusak',
