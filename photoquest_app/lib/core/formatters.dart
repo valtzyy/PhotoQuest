@@ -15,4 +15,15 @@ class Formatters {
         locale: 'id_ID',
         decimalDigits: digits,
       ).format(value);
+
+  /// Contoh: Rp15.000
+  static String rupiah(num value) => NumberFormat.currency(
+    locale: 'id_ID',
+    symbol: 'Rp',
+    decimalDigits: 0,
+  ).format(value);
+
+  /// Contoh: 850 m, 3,4 km
+  static String distance(double km) =>
+      km < 1 ? '${(km * 1000).round()} m' : '${decimal(km, digits: 1)} km';
 }

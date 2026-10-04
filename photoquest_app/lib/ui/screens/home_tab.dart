@@ -4,17 +4,19 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../widgets/state_views.dart';
 import '../widgets/user_avatar.dart';
+import 'explore_screen.dart';
 
 /// Satu item menu di grid Home.
 class _MenuItem {
-  const _MenuItem(this.label, this.icon, this.phase);
+  const _MenuItem(this.label, this.icon, this.phase, [this.builder]);
   final String label;
   final IconData icon;
   final int phase; // fase pengerjaan (sementara, untuk pesan "segera hadir")
+  final WidgetBuilder? builder; // layar tujuan; null = belum dibuat
 }
 
-const _menu = [
-  _MenuItem('Explore', Icons.explore, 4),
+final _menu = [
+  _MenuItem('Explore', Icons.explore, 4, (_) => const ExploreScreen()),
   _MenuItem('Peta Terdekat', Icons.map, 5),
   _MenuItem('Plan (AI)', Icons.insights, 8),
   _MenuItem('Assistant', Icons.chat_bubble, 8),
@@ -30,7 +32,11 @@ class HomeTab extends StatelessWidget {
   const HomeTab({super.key});
 
   void _open(BuildContext context, _MenuItem item) {
-    // Sementara: setiap menu akan dihubungkan ke layarnya pada fase masing-masing.
+    if (item.builder != null) {
+      Navigator.of(context).push(MaterialPageRoute(builder: item.builder!));
+      return;
+    }
+    // Sementara: menu lain dihubungkan ke layarnya pada fase masing-masing.
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(

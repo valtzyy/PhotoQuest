@@ -11,12 +11,16 @@ import 'data/local/secure_store.dart';
 import 'data/remote/api_client.dart';
 import 'data/remote/auth_api.dart';
 import 'data/remote/challenge_api.dart';
+import 'data/local/spot_dao.dart';
 import 'data/remote/feedback_api.dart';
+import 'data/remote/spot_api.dart';
 import 'data/remote/user_api.dart';
 import 'data/repositories/auth_repository.dart';
 import 'data/repositories/feedback_repository.dart';
 import 'data/repositories/profile_repository.dart';
+import 'data/repositories/spot_repository.dart';
 import 'providers/auth_provider.dart';
+import 'providers/spot_provider.dart';
 import 'services/biometric_service.dart';
 import 'ui/screens/login_screen.dart';
 import 'ui/screens/main_shell.dart';
@@ -39,6 +43,17 @@ Future<void> main() async {
     BiometricService(),
     apiClient,
   );
+
+  final spotProvider = SpotProvider(
+    SpotRepository(SpotApi(apiClient), SpotDao(db)),
+  );
+
+  // Setelah logout, favorit user sebelumnya tidak boleh terlihat user berikutnya.
+  authProvider.addListener(() {
+    if (authProvider.status == AuthStatus.unauthenticated) {
+      spotProvider.clearUserState();
+    }
+  });
 
   // Saat token ditolak server (401): kembali ke Login dari layar mana pun.
   authProvider.onSessionExpired = (message) {
@@ -67,6 +82,7 @@ Future<void> main() async {
           value: FeedbackRepository(FeedbackApi(apiClient), jsonCache),
         ),
         ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+        ChangeNotifierProvider<SpotProvider>.value(value: spotProvider),
       ],
       child: const PhotoQuestApp(),
     ),

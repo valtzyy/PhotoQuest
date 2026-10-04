@@ -35,6 +35,8 @@ app.use('/auth', require('./routes/auth'));
 app.use('/users', require('./routes/users'));
 app.use('/feedback', require('./routes/feedback'));
 app.use('/challenge', require('./routes/challenge'));
+app.use('/spots', require('./routes/spots'));
+app.use('/favorites', require('./routes/favorites'));
 
 // 404 untuk endpoint yang tidak ada.
 app.use((req, res) => fail(res, 404, `Endpoint ${req.method} ${req.path} tidak ditemukan`));
