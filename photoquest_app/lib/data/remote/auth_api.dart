@@ -15,27 +15,36 @@ class AuthApi {
 
   Future<AuthResult> login(String email, String password) async {
     final data = await _client.send<Map<String, dynamic>>(
-      (dio) => dio.post('/auth/login', data: {'email': email, 'password': password}),
+      (dio) =>
+          dio.post('/auth/login', data: {'email': email, 'password': password}),
     );
     return _toResult(data);
   }
 
-  Future<AuthResult> register(String name, String email, String password) async {
+  Future<AuthResult> register(
+    String name,
+    String email,
+    String password,
+  ) async {
     final data = await _client.send<Map<String, dynamic>>(
-      (dio) => dio.post('/auth/register',
-          data: {'name': name, 'email': email, 'password': password}),
+      (dio) => dio.post(
+        '/auth/register',
+        data: {'name': name, 'email': email, 'password': password},
+      ),
     );
     return _toResult(data);
   }
 
   /// Validasi token yang tersimpan dan ambil data user terbaru.
   Future<User> me() async {
-    final data = await _client.send<Map<String, dynamic>>((dio) => dio.get('/auth/me'));
+    final data = await _client.send<Map<String, dynamic>>(
+      (dio) => dio.get('/auth/me'),
+    );
     return User.fromJson(data);
   }
 
   AuthResult _toResult(Map<String, dynamic> data) => AuthResult(
-        data['token'] as String,
-        User.fromJson(data['user'] as Map<String, dynamic>),
-      );
+    data['token'] as String,
+    User.fromJson(data['user'] as Map<String, dynamic>),
+  );
 }

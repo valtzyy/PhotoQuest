@@ -1,3 +1,4 @@
+import '../local/db_helper.dart';
 import '../local/secure_store.dart';
 import '../models/user.dart';
 import '../remote/api_exception.dart';
@@ -27,10 +28,11 @@ class RestoreResult {
 
 /// Menggabungkan API auth (remote) dan secure storage (lokal).
 class AuthRepository {
-  AuthRepository(this._api, this._store);
+  AuthRepository(this._api, this._store, this._db);
 
   final AuthApi _api;
   final SecureStore _store;
+  final DbHelper _db;
 
   Future<User> login(String email, String password) async {
     final result = await _api.login(email, password);
@@ -65,16 +67,28 @@ class AuthRepository {
       // Gagal jaringan: pakai user terakhir agar app tetap bisa dipakai offline.
       final cached = await _store.readUser();
       if (cached != null) {
-        return RestoreResult(RestoreStatus.offline, user: cached, message: e.message);
+        return RestoreResult(
+          RestoreStatus.offline,
+          user: cached,
+          message: e.message,
+        );
       }
       return RestoreResult(RestoreStatus.failed, message: e.message);
     }
   }
 
-  Future<void> logout() => _store.clearSession();
+  /// Logout: hapus token + user (secure storage) dan cache milik user (sqflite).
+  Future<void> logout() async {
+    await _store.clearSession();
+    await _db.clearUserData();
+  }
+
+  /// Simpan user terbaru (mis. setelah ubah nama/foto) agar cache offline ikut ter-update.
+  Future<void> saveUser(User user) => _store.saveUser(user);
 
   Future<bool> isBiometricEnabled() => _store.isBiometricEnabled();
-  Future<void> setBiometricEnabled(bool value) => _store.setBiometricEnabled(value);
+  Future<void> setBiometricEnabled(bool value) =>
+      _store.setBiometricEnabled(value);
   Future<bool> wasBiometricAsked() => _store.wasBiometricAsked();
   Future<void> setBiometricAsked() => _store.setBiometricAsked();
 }

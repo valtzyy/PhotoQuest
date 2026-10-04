@@ -36,11 +36,15 @@ class _LoginScreenState extends State<LoginScreen> {
       _error = null;
     });
     try {
-      await context.read<AuthProvider>().login(_emailCtrl.text, _passwordCtrl.text);
+      await context.read<AuthProvider>().login(
+        _emailCtrl.text,
+        _passwordCtrl.text,
+      );
       if (!mounted) return;
       await offerBiometricIfNeeded(context);
       if (!mounted) return;
-      Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.home, (_) => false);
+      Navigator.of(context)
+          .pushNamedAndRemoveUntil(AppRoutes.home, (_) => false);
     } on ApiException catch (e) {
       setState(() => _error = e.message);
     } finally {
@@ -61,10 +65,17 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(Icons.camera_alt_rounded, size: 64, color: theme.colorScheme.primary),
+                  Icon(
+                    Icons.camera_alt_rounded,
+                    size: 64,
+                    color: theme.colorScheme.primary,
+                  ),
                   const SizedBox(height: 8),
-                  Text('Masuk ke PhotoQuest',
-                      textAlign: TextAlign.center, style: theme.textTheme.headlineSmall),
+                  Text(
+                    'Masuk ke PhotoQuest',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.headlineSmall,
+                  ),
                   const SizedBox(height: 24),
                   TextFormField(
                     controller: _emailCtrl,
@@ -86,7 +97,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       labelText: 'Password',
                       prefixIcon: const Icon(Icons.lock_outline),
                       suffixIcon: IconButton(
-                        icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
+                        icon: Icon(
+                          _obscure ? Icons.visibility : Icons.visibility_off,
+                        ),
                         onPressed: () => setState(() => _obscure = !_obscure),
                       ),
                     ),
@@ -94,21 +107,29 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   if (_error != null) ...[
                     const SizedBox(height: 12),
-                    Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
+                    Text(
+                      _error!,
+                      style: TextStyle(color: theme.colorScheme.error),
+                    ),
                   ],
                   const SizedBox(height: 20),
                   FilledButton(
                     onPressed: _loading ? null : _submit,
                     child: _loading
                         ? const SizedBox(
-                            height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
                         : const Text('Masuk'),
                   ),
                   const SizedBox(height: 8),
                   TextButton(
                     onPressed: _loading
                         ? null
-                        : () => Navigator.of(context).pushNamed(AppRoutes.register),
+                        : () =>
+                              Navigator.of(context)
+                                  .pushNamed(AppRoutes.register),
                     child: const Text('Belum punya akun? Daftar'),
                   ),
                 ],

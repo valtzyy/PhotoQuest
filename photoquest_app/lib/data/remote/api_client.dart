@@ -12,15 +12,15 @@ import 'api_exception.dart';
 ///   (token kedaluwarsa/tidak valid) -> aplikasi logout otomatis.
 class ApiClient {
   ApiClient(this._store)
-      : dio = Dio(
-          BaseOptions(
-            baseUrl: AppConfig.apiBaseUrl,
-            connectTimeout: AppConfig.requestTimeout,
-            receiveTimeout: AppConfig.requestTimeout,
-            sendTimeout: AppConfig.requestTimeout,
-            contentType: 'application/json',
-          ),
-        ) {
+    : dio = Dio(
+        BaseOptions(
+          baseUrl: AppConfig.apiBaseUrl,
+          connectTimeout: AppConfig.requestTimeout,
+          receiveTimeout: AppConfig.requestTimeout,
+          sendTimeout: AppConfig.requestTimeout,
+          contentType: 'application/json',
+        ),
+      ) {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
@@ -34,7 +34,8 @@ class ApiClient {
           final path = error.requestOptions.path;
           // 401 dari login/register berarti "password salah", bukan session habis.
           final isCredentialEndpoint =
-              path.startsWith('/auth/login') || path.startsWith('/auth/register');
+              path.startsWith('/auth/login') ||
+              path.startsWith('/auth/register');
           if (error.response?.statusCode == 401 && !isCredentialEndpoint) {
             onUnauthorized?.call();
           }

@@ -45,10 +45,14 @@ class _SplashScreenState extends State<SplashScreen> {
     // (2) Biometrik aktif -> wajib lolos biometrik sebelum session dibuka
     if (auth.biometricEnabled) {
       if (!await auth.isBiometricAvailable()) {
-        return _showProblem('Biometrik tidak tersedia di perangkat. Silakan login dengan password.');
+        return _showProblem(
+          'Biometrik tidak tersedia di perangkat. Silakan login dengan password.',
+        );
       }
       final bio = await auth.authenticateBiometric();
-      if (!bio.success) return _showProblem(bio.message ?? 'Login biometrik gagal');
+      if (!bio.success) {
+        return _showProblem(bio.message ?? 'Login biometrik gagal');
+      }
     }
 
     // (2)/(3) Validasi token ke server
@@ -59,14 +63,18 @@ class _SplashScreenState extends State<SplashScreen> {
         return _goTo(AppRoutes.home);
       case RestoreStatus.offline:
         scaffoldMessengerKey.currentState?.showSnackBar(
-          const SnackBar(content: Text('Mode offline: server tidak dapat dihubungi')),
+          const SnackBar(
+            content: Text('Mode offline: server tidak dapat dihubungi'),
+          ),
         );
         return _goTo(AppRoutes.home);
       case RestoreStatus.unauthorized:
         // (4) Interceptor sudah logout & membuka Login. Jangan navigasi dua kali.
         return;
       case RestoreStatus.failed:
-        return _showProblem('${result.message}\nServer: ${AppConfig.apiBaseUrl}');
+        return _showProblem(
+          '${result.message}\nServer: ${AppConfig.apiBaseUrl}',
+        );
     }
   }
 
@@ -94,11 +102,18 @@ class _SplashScreenState extends State<SplashScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.camera_alt_rounded, size: 72, color: theme.colorScheme.primary),
+                Icon(
+                  Icons.camera_alt_rounded,
+                  size: 72,
+                  color: theme.colorScheme.primary,
+                ),
                 const SizedBox(height: 12),
                 Text('PhotoQuest', style: theme.textTheme.headlineMedium),
                 const SizedBox(height: 4),
-                Text('Smart Photography Companion', style: theme.textTheme.bodyMedium),
+                Text(
+                  'Smart Photography Companion',
+                  style: theme.textTheme.bodyMedium,
+                ),
                 const SizedBox(height: 32),
                 if (_busy) const CircularProgressIndicator(),
                 if (_problem != null) ...[

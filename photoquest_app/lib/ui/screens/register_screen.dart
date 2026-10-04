@@ -40,13 +40,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
     try {
       // Backend langsung mengembalikan token -> user otomatis login.
-      await context
-          .read<AuthProvider>()
-          .register(_nameCtrl.text, _emailCtrl.text, _passwordCtrl.text);
+      await context.read<AuthProvider>().register(
+        _nameCtrl.text,
+        _emailCtrl.text,
+        _passwordCtrl.text,
+      );
       if (!mounted) return;
       await offerBiometricIfNeeded(context);
       if (!mounted) return;
-      Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.home, (_) => false);
+      Navigator.of(context)
+          .pushNamedAndRemoveUntil(AppRoutes.home, (_) => false);
     } on ApiException catch (e) {
       setState(() => _error = e.message);
     } finally {
@@ -114,14 +117,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 if (_error != null) ...[
                   const SizedBox(height: 12),
-                  Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
+                  Text(
+                    _error!,
+                    style: TextStyle(color: theme.colorScheme.error),
+                  ),
                 ],
                 const SizedBox(height: 20),
                 FilledButton(
                   onPressed: _loading ? null : _submit,
                   child: _loading
                       ? const SizedBox(
-                          height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
                       : const Text('Daftar'),
                 ),
               ],

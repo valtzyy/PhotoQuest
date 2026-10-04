@@ -14,17 +14,20 @@ class BiometricResult {
 /// Biometrik TIDAK menggantikan password di server. Biometrik hanya "membuka"
 /// JWT yang sudah tersimpan terenkripsi di perangkat setelah login password.
 class BiometricService {
-  BiometricService([LocalAuthentication? auth]) : _auth = auth ?? LocalAuthentication();
+  BiometricService([LocalAuthentication? auth])
+    : _auth = auth ?? LocalAuthentication();
 
   final LocalAuthentication _auth;
 
   /// true jika perangkat punya sensor biometrik DAN sudah ada sidik jari/wajah terdaftar.
   Future<bool> isAvailable() async {
     try {
-      final canCheck = await _auth.canCheckBiometrics; // ada hardware biometrik?
+      final canCheck =
+          await _auth.canCheckBiometrics; // ada hardware biometrik?
       final supported = await _auth.isDeviceSupported(); // OS mendukung?
       if (!canCheck || !supported) return false;
-      final enrolled = await _auth.getAvailableBiometrics(); // ada yang terdaftar?
+      final enrolled = await _auth
+          .getAvailableBiometrics(); // ada yang terdaftar?
       return enrolled.isNotEmpty;
     } catch (_) {
       return false;

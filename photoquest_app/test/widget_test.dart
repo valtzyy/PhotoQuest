@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
+import 'package:photoquest_app/data/local/db_helper.dart';
 import 'package:photoquest_app/data/local/secure_store.dart';
 import 'package:photoquest_app/data/remote/api_client.dart';
 import 'package:photoquest_app/data/remote/auth_api.dart';
@@ -14,7 +15,11 @@ void main() {
   Widget buildLogin() {
     final store = SecureStore();
     final client = ApiClient(store);
-    final auth = AuthProvider(AuthRepository(AuthApi(client), store), BiometricService(), client);
+    final auth = AuthProvider(
+      AuthRepository(AuthApi(client), store, DbHelper.instance),
+      BiometricService(),
+      client,
+    );
     return ChangeNotifierProvider.value(
       value: auth,
       child: const MaterialApp(home: LoginScreen()),
@@ -29,7 +34,9 @@ void main() {
     expect(find.text('Password wajib diisi'), findsOneWidget);
   });
 
-  testWidgets('Login: email salah format & password pendek ditolak', (tester) async {
+  testWidgets('Login: email salah format & password pendek ditolak', (
+    tester,
+  ) async {
     await tester.pumpWidget(buildLogin());
     await tester.enterText(find.byType(TextFormField).at(0), 'bukan-email');
     await tester.enterText(find.byType(TextFormField).at(1), '123');

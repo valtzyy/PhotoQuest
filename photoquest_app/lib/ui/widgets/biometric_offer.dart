@@ -21,8 +21,14 @@ Future<void> offerBiometricIfNeeded(BuildContext context) async {
         'Pengaturan ini bisa diubah di halaman Profil.',
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Nanti')),
-        FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Aktifkan')),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Nanti'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          child: const Text('Aktifkan'),
+        ),
       ],
     ),
   );
@@ -30,7 +36,6 @@ Future<void> offerBiometricIfNeeded(BuildContext context) async {
 
   final error = await auth.setBiometricEnabled(true);
   if (!context.mounted) return;
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text(error ?? 'Login biometrik aktif')),
-  );
+  ScaffoldMessenger.of(context)
+      .showSnackBar(SnackBar(content: Text(error ?? 'Login biometrik aktif')));
 }

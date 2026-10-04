@@ -11,7 +11,7 @@ import '../models/user.dart';
 /// Yang disimpan: JWT, data user terakhir, dan preferensi biometrik.
 class SecureStore {
   SecureStore([FlutterSecureStorage? storage])
-      : _storage = storage ?? const FlutterSecureStorage();
+    : _storage = storage ?? const FlutterSecureStorage();
 
   final FlutterSecureStorage _storage;
 
@@ -21,7 +21,8 @@ class SecureStore {
   static const _kBiometricAsked = 'biometric_asked';
 
   // ---- Token JWT ----
-  Future<void> saveToken(String token) => _storage.write(key: _kToken, value: token);
+  Future<void> saveToken(String token) =>
+      _storage.write(key: _kToken, value: token);
   Future<String?> readToken() => _storage.read(key: _kToken);
 
   // ---- User terakhir (dipakai saat offline agar app tetap bisa dibuka) ----

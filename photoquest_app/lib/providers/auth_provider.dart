@@ -34,8 +34,12 @@ class AuthProvider extends ChangeNotifier {
 
   Future<RestoreResult> restoreSession() async {
     final result = await _repo.restoreSession();
-    if (result.status == RestoreStatus.online || result.status == RestoreStatus.offline) {
-      _setLoggedIn(result.user!, offline: result.status == RestoreStatus.offline);
+    if (result.status == RestoreStatus.online ||
+        result.status == RestoreStatus.offline) {
+      _setLoggedIn(
+        result.user!,
+        offline: result.status == RestoreStatus.offline,
+      );
     }
     return result;
   }
@@ -55,6 +59,13 @@ class AuthProvider extends ChangeNotifier {
     user = null;
     isOffline = false;
     status = AuthStatus.unauthenticated;
+    notifyListeners();
+  }
+
+  /// Perbarui data user di state + cache (dipanggil setelah ubah nama/foto profil).
+  Future<void> updateUser(User u) async {
+    user = u;
+    await _repo.saveUser(u);
     notifyListeners();
   }
 
@@ -103,7 +114,9 @@ class AuthProvider extends ChangeNotifier {
       if (!await _biometric.isAvailable()) {
         return 'Perangkat tidak mendukung biometrik atau belum ada yang terdaftar';
       }
-      final result = await _biometric.authenticate('Konfirmasi untuk mengaktifkan login biometrik');
+      final result = await _biometric.authenticate(
+        'Konfirmasi untuk mengaktifkan login biometrik',
+      );
       if (!result.success) return result.message;
     }
     await _repo.setBiometricEnabled(enable);
