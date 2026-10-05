@@ -102,41 +102,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // ------------------------------------------------------------ ubah nama
   Future<void> _editName(String current) async {
-    final controller = TextEditingController(text: current);
-    final formKey = GlobalKey<FormState>();
+    // Controller dimiliki oleh _EditNameDialog (bukan dibuat di sini), supaya
+    // baru di-dispose setelah dialog benar-benar hilang dari layar.
     final newName = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Ubah nama'),
-        content: Form(
-          key: formKey,
-          child: TextFormField(
-            controller: controller,
-            autofocus: true,
-            maxLength: 100,
-            textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(labelText: 'Nama'),
-            validator: (v) =>
-                (v?.trim().length ?? 0) < 2 ? 'Nama minimal 2 karakter' : null,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal'),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (formKey.currentState!.validate()) {
-                Navigator.pop(ctx, controller.text.trim());
-              }
-            },
-            child: const Text('Simpan'),
-          ),
-        ],
-      ),
+      builder: (_) => _EditNameDialog(initialName: current),
     );
-    controller.dispose();
     if (newName == null || newName == current || !mounted) return;
 
     try {
@@ -267,6 +238,68 @@ class _ProfileScreenState extends State<ProfileScreen> {
               isThreeLine: true,
             ),
           ),
+      ],
+    );
+  }
+}
+
+/// Dialog ubah nama.
+///
+/// Dibuat sebagai StatefulWidget agar TextEditingController dibuang di dispose()
+/// milik dialog ini. Jika controller di-dispose tepat setelah showDialog() selesai,
+/// dialog yang masih menjalankan animasi menutup akan memakai controller yang
+/// sudah dibuang -> error "_dependents.isEmpty" (layar merah).
+class _EditNameDialog extends StatefulWidget {
+  const _EditNameDialog({required this.initialName});
+
+  final String initialName;
+
+  @override
+  State<_EditNameDialog> createState() => _EditNameDialogState();
+}
+
+class _EditNameDialogState extends State<_EditNameDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.initialName,
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    if (_formKey.currentState!.validate()) {
+      Navigator.pop(context, _controller.text.trim());
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Ubah nama'),
+      content: Form(
+        key: _formKey,
+        child: TextFormField(
+          controller: _controller,
+          autofocus: true,
+          maxLength: 100,
+          textCapitalization: TextCapitalization.words,
+          textInputAction: TextInputAction.done,
+          onFieldSubmitted: (_) => _save(),
+          decoration: const InputDecoration(labelText: 'Nama'),
+          validator: (v) =>
+              (v?.trim().length ?? 0) < 2 ? 'Nama minimal 2 karakter' : null,
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Batal'),
+        ),
+        FilledButton(onPressed: _save, child: const Text('Simpan')),
       ],
     );
   }
