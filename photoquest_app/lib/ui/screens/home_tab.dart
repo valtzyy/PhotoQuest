@@ -6,6 +6,7 @@ import '../widgets/state_views.dart';
 import '../widgets/user_avatar.dart';
 import '../widgets/weather_card.dart';
 import 'explore_screen.dart';
+import 'level_stabilizer_screen.dart';
 import 'nearby_map_screen.dart';
 
 /// Satu item menu di grid Home.
@@ -22,7 +23,12 @@ final _menu = [
   _MenuItem('Peta Terdekat', Icons.map, 5, (_) => const NearbyMapScreen()),
   _MenuItem('Plan (AI)', Icons.insights, 8),
   _MenuItem('Assistant', Icons.chat_bubble, 8),
-  _MenuItem('Level & Stabilizer', Icons.straighten, 7),
+  _MenuItem(
+    'Level & Stabilizer',
+    Icons.straighten,
+    7,
+    (_) => const LevelStabilizerScreen(),
+  ),
   _MenuItem('Steady Challenge', Icons.sports_esports, 10),
   _MenuItem('PhotoQuiz', Icons.quiz, 10),
   _MenuItem('Konverter', Icons.currency_exchange, 9),
