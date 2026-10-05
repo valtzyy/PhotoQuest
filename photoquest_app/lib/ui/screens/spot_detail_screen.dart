@@ -6,6 +6,8 @@ import '../../core/formatters.dart';
 import '../../data/models/spot.dart';
 import '../../providers/spot_provider.dart';
 import '../widgets/spot_placeholder.dart';
+import 'assistant_screen.dart';
+import 'plan_screen.dart';
 
 /// Detail spot: deskripsi, waktu terbaik, jenis foto, tips, favorit,
 /// tombol "Rencanakan Foto di Sini" dan "Tanya Assistant".
@@ -154,15 +156,23 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                 ),
                 const SizedBox(height: 16),
                 FilledButton.icon(
-                  // Dihubungkan ke layar Plan (AI) di Fase 8.
-                  onPressed: () => _snack('Plan (AI) dibuat di Fase 8'),
+                  // Buka Plan dengan spot ini sudah terpilih.
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => PlanScreen(initialSpot: _spot),
+                    ),
+                  ),
                   icon: const Icon(Icons.insights),
                   label: const Text('Rencanakan Foto di Sini'),
                 ),
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
-                  // Dihubungkan ke Photography Assistant di Fase 8.
-                  onPressed: () => _snack('Assistant dibuat di Fase 8'),
+                  // Buka Assistant dengan konteks spot ini.
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => AssistantScreen(spot: _spot),
+                    ),
+                  ),
                   icon: const Icon(Icons.chat_bubble_outline),
                   label: const Text('Tanya Assistant'),
                 ),

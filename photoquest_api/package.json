@@ -11,6 +11,7 @@
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
     "db:init": "node scripts/initDb.js",
+    "llm:check": "node scripts/checkLlm.js",
     "test": "node --test \"test/**/*.test.js\""
   },
   "license": "UNLICENSED",

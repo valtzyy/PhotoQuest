@@ -5,9 +5,11 @@ import '../../providers/auth_provider.dart';
 import '../widgets/state_views.dart';
 import '../widgets/user_avatar.dart';
 import '../widgets/weather_card.dart';
+import 'assistant_screen.dart';
 import 'explore_screen.dart';
 import 'level_stabilizer_screen.dart';
 import 'nearby_map_screen.dart';
+import 'plan_screen.dart';
 
 /// Satu item menu di grid Home.
 class _MenuItem {
@@ -21,8 +23,8 @@ class _MenuItem {
 final _menu = [
   _MenuItem('Explore', Icons.explore, 4, (_) => const ExploreScreen()),
   _MenuItem('Peta Terdekat', Icons.map, 5, (_) => const NearbyMapScreen()),
-  _MenuItem('Plan (AI)', Icons.insights, 8),
-  _MenuItem('Assistant', Icons.chat_bubble, 8),
+  _MenuItem('Plan (AI)', Icons.insights, 8, (_) => const PlanScreen()),
+  _MenuItem('Assistant', Icons.chat_bubble, 8, (_) => const AssistantScreen()),
   _MenuItem(
     'Level & Stabilizer',
     Icons.straighten,

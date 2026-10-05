@@ -38,6 +38,8 @@ app.use('/challenge', require('./routes/challenge'));
 app.use('/spots', require('./routes/spots'));
 app.use('/favorites', require('./routes/favorites'));
 app.use('/weather', require('./routes/weather'));
+app.use('/ai', require('./routes/ai'));
+app.use('/sessions', require('./routes/sessions'));
 
 // 404 untuk endpoint yang tidak ada.
 app.use((req, res) => fail(res, 404, `Endpoint ${req.method} ${req.path} tidak ditemukan`));

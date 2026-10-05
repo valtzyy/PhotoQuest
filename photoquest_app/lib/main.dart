@@ -8,6 +8,7 @@ import 'core/theme.dart';
 import 'data/local/db_helper.dart';
 import 'data/local/json_cache.dart';
 import 'data/local/secure_store.dart';
+import 'data/remote/ai_api.dart';
 import 'data/remote/api_client.dart';
 import 'data/remote/auth_api.dart';
 import 'data/remote/challenge_api.dart';
@@ -79,6 +80,7 @@ Future<void> main() async {
     MultiProvider(
       providers: [
         Provider<ApiClient>.value(value: apiClient),
+        Provider<AiApi>.value(value: AiApi(apiClient)),
         Provider<DbHelper>.value(value: db),
         Provider<ProfileRepository>.value(
           value: ProfileRepository(
