@@ -1,0 +1,28 @@
+# Render Blueprint untuk backend PhotoQuest (lihat DEPLOY.md).
+# Nilai rahasia (sync: false) diisi manual di dashboard Render, TIDAK ditulis di file ini.
+services:
+  - type: web
+    name: photoquest-api
+    runtime: node
+    plan: free
+    rootDir: photoquest_api
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL # connection string Neon (sslmode=verify-full)
+        sync: false
+      - key: JWT_SECRET # dibuat acak otomatis oleh Render
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: LLM_PROVIDER
+        value: gemini
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash-lite
+      - key: EXTERNAL_TIMEOUT_MS
+        value: "8000"
+      - key: DEMO_MODE
+        value: "true"

@@ -15,64 +15,44 @@ import 'plan_screen.dart';
 import 'quiz_screen.dart';
 import 'steady_challenge_screen.dart';
 
-/// Satu item menu di grid Home.
+/// Satu item menu di grid Home: label, ikon, dan layar tujuan.
 class _MenuItem {
-  const _MenuItem(this.label, this.icon, this.phase, [this.builder]);
+  const _MenuItem(this.label, this.icon, this.builder);
   final String label;
   final IconData icon;
-  final int phase; // fase pengerjaan (sementara, untuk pesan "segera hadir")
-  final WidgetBuilder? builder; // layar tujuan; null = belum dibuat
+  final WidgetBuilder builder;
 }
 
 final _menu = [
-  _MenuItem('Explore', Icons.explore, 4, (_) => const ExploreScreen()),
-  _MenuItem('Peta Terdekat', Icons.map, 5, (_) => const NearbyMapScreen()),
-  _MenuItem('Plan (AI)', Icons.insights, 8, (_) => const PlanScreen()),
-  _MenuItem('Assistant', Icons.chat_bubble, 8, (_) => const AssistantScreen()),
+  _MenuItem('Explore', Icons.explore, (_) => const ExploreScreen()),
+  _MenuItem('Peta Terdekat', Icons.map, (_) => const NearbyMapScreen()),
+  _MenuItem('Plan (AI)', Icons.insights, (_) => const PlanScreen()),
+  _MenuItem('Assistant', Icons.chat_bubble, (_) => const AssistantScreen()),
   _MenuItem(
     'Level & Stabilizer',
     Icons.straighten,
-    7,
     (_) => const LevelStabilizerScreen(),
   ),
   _MenuItem(
     'Steady Challenge',
     Icons.sports_esports,
-    10,
     (_) => const SteadyChallengeScreen(),
   ),
-  _MenuItem('PhotoQuiz', Icons.quiz, 10, (_) => const QuizScreen()),
+  _MenuItem('PhotoQuiz', Icons.quiz, (_) => const QuizScreen()),
   _MenuItem(
     'Konverter',
     Icons.currency_exchange,
-    9,
     (_) => const ConverterScreen(),
   ),
-  _MenuItem(
-    'Chain Explorer',
-    Icons.link,
-    10,
-    (_) => const ChainExplorerScreen(),
-  ),
+  _MenuItem('Chain Explorer', Icons.link, (_) => const ChainExplorerScreen()),
 ];
 
 /// Tab Home: sapaan + kartu cuaca singkat + grid menu fitur.
 class HomeTab extends StatelessWidget {
   const HomeTab({super.key});
 
-  void _open(BuildContext context, _MenuItem item) {
-    if (item.builder != null) {
-      Navigator.of(context).push(MaterialPageRoute(builder: item.builder!));
-      return;
-    }
-    // Sementara: menu lain dihubungkan ke layarnya pada fase masing-masing.
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(content: Text('${item.label} dibuat di Fase ${item.phase}')),
-      );
-  }
-
+  void _open(BuildContext context, _MenuItem item) =>
+      Navigator.of(context).push(MaterialPageRoute(builder: item.builder));
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();

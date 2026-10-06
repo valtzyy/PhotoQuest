@@ -30,7 +30,7 @@ app.get('/health', async (req, res) => {
   }
 });
 
-// Route fitur. Route lain (spots, favorites, dll) ditambahkan pada fase berikutnya.
+// Route fitur. Semua membutuhkan JWT kecuali /health, /auth/register, dan /auth/login.
 app.use('/auth', require('./routes/auth'));
 app.use('/users', require('./routes/users'));
 app.use('/feedback', require('./routes/feedback'));

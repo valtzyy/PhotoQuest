@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Resource yang TIDAK boleh dibuang R8 saat build release.
+     Ikon notifikasi (@mipmap/ic_launcher) dipakai flutter_local_notifications;
+     jika dibuang, notifikasi di APK release bisa gagal tampil tanpa error. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@mipmap/ic_launcher,@drawable/*" />

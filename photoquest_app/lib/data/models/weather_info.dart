@@ -65,7 +65,7 @@ class CurrentWeather {
   );
 }
 
-/// Prakiraan per jam: tutupan awan & peluang hujan (dipakai AI score di Fase 8).
+/// Prakiraan per jam: tutupan awan & peluang hujan (dipakai Shoot Condition Score).
 class HourlyPoint {
   const HourlyPoint(this.time, this.cloudCover, this.precipitationProbability);
   final DateTime time;

@@ -1,0 +1,10 @@
+# Salin menjadi android/key.properties lalu isi. File key.properties dan *.jks
+# TIDAK BOLEH di-commit (sudah ada di android/.gitignore).
+#
+# Buat keystore (sekali saja), jalankan dari folder photoquest_app/android:
+#   keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+storePassword=password_keystore_anda
+keyPassword=password_key_anda
+keyAlias=upload
+# Path relatif terhadap folder android/app
+storeFile=../upload-keystore.jks

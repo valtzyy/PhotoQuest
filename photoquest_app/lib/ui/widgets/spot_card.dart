@@ -19,7 +19,7 @@ class SpotCard extends StatelessWidget {
   final bool isFavorite;
   final VoidCallback onTap;
 
-  /// Jarak dari posisi user. Diisi mulai Fase 5 (LBS); null = lokasi belum ada.
+  /// Jarak dari posisi user (LBS); null = lokasi belum diketahui.
   final double? distanceKm;
 
   @override
