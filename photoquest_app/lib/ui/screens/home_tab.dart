@@ -6,11 +6,14 @@ import '../widgets/state_views.dart';
 import '../widgets/user_avatar.dart';
 import '../widgets/weather_card.dart';
 import 'assistant_screen.dart';
+import 'chain_explorer_screen.dart';
 import 'converter_screen.dart';
 import 'explore_screen.dart';
 import 'level_stabilizer_screen.dart';
 import 'nearby_map_screen.dart';
 import 'plan_screen.dart';
+import 'quiz_screen.dart';
+import 'steady_challenge_screen.dart';
 
 /// Satu item menu di grid Home.
 class _MenuItem {
@@ -32,15 +35,25 @@ final _menu = [
     7,
     (_) => const LevelStabilizerScreen(),
   ),
-  _MenuItem('Steady Challenge', Icons.sports_esports, 10),
-  _MenuItem('PhotoQuiz', Icons.quiz, 10),
+  _MenuItem(
+    'Steady Challenge',
+    Icons.sports_esports,
+    10,
+    (_) => const SteadyChallengeScreen(),
+  ),
+  _MenuItem('PhotoQuiz', Icons.quiz, 10, (_) => const QuizScreen()),
   _MenuItem(
     'Konverter',
     Icons.currency_exchange,
     9,
     (_) => const ConverterScreen(),
   ),
-  _MenuItem('Chain Explorer', Icons.link, 10),
+  _MenuItem(
+    'Chain Explorer',
+    Icons.link,
+    10,
+    (_) => const ChainExplorerScreen(),
+  ),
 ];
 
 /// Tab Home: sapaan + kartu cuaca singkat + grid menu fitur.

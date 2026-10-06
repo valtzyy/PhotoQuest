@@ -8,6 +8,7 @@ import 'core/routes.dart';
 import 'core/theme.dart';
 import 'data/local/db_helper.dart';
 import 'data/local/json_cache.dart';
+import 'data/local/quiz_dao.dart';
 import 'data/local/secure_store.dart';
 import 'data/remote/ai_api.dart';
 import 'data/remote/api_client.dart';
@@ -96,6 +97,8 @@ Future<void> main() async {
         Provider<ApiClient>.value(value: apiClient),
         Provider<AiApi>.value(value: AiApi(apiClient)),
         Provider<NotificationService>.value(value: notificationService),
+        Provider<ChallengeApi>.value(value: ChallengeApi(apiClient)),
+        Provider<QuizDao>.value(value: QuizDao(db)),
         Provider<ConverterRepository>.value(
           value: ConverterRepository(
             ConverterApi(apiClient),

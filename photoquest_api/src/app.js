@@ -43,6 +43,7 @@ app.use('/sessions', require('./routes/sessions'));
 const { currencyRouter, gearRouter } = require('./routes/currency');
 app.use('/currency', currencyRouter);
 app.use('/gear', gearRouter);
+app.use('/chain', require('./routes/chain'));
 
 // 404 untuk endpoint yang tidak ada.
 app.use((req, res) => fail(res, 404, `Endpoint ${req.method} ${req.path} tidak ditemukan`));
