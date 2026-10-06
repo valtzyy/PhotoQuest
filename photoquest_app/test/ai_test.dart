@@ -202,7 +202,7 @@ void main() {
       expect(find.text('86'), findsOneWidget);
       expect(find.text('Sangat Baik'), findsOneWidget);
       await tester.scrollUntilVisible(find.text('Template'), 200);
-    expect(find.text('Template'), findsOneWidget);
+      expect(find.text('Template'), findsOneWidget);
 
       await tester.scrollUntilVisible(find.text('Simpan Sesi'), 200);
       await tester.tap(find.text('Simpan Sesi'));

@@ -40,6 +40,9 @@ app.use('/favorites', require('./routes/favorites'));
 app.use('/weather', require('./routes/weather'));
 app.use('/ai', require('./routes/ai'));
 app.use('/sessions', require('./routes/sessions'));
+const { currencyRouter, gearRouter } = require('./routes/currency');
+app.use('/currency', currencyRouter);
+app.use('/gear', gearRouter);
 
 // 404 untuk endpoint yang tidak ada.
 app.use((req, res) => fail(res, 404, `Endpoint ${req.method} ${req.path} tidak ditemukan`));

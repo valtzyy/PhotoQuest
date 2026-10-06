@@ -38,6 +38,18 @@ class Formatters {
   static String dayLabel(String isoDate) =>
       DateFormat('EEE, d MMM', 'id_ID').format(DateTime.parse(isoDate));
 
+  /// Format uang per mata uang. Contoh: Rp1.500.000, US$83,56, €74,45, ¥13.176
+  static String money(num value, String currency) {
+    const symbols = {'IDR': 'Rp', 'USD': 'US\$', 'EUR': '€', 'JPY': '¥'};
+    // Rupiah & yen tidak memakai pecahan sen.
+    final digits = currency == 'IDR' || currency == 'JPY' ? 0 : 2;
+    return NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: symbols[currency] ?? '$currency ',
+      decimalDigits: digits,
+    ).format(value);
+  }
+
   /// Contoh: 850 m, 3,4 km
   static String distance(double km) =>
       km < 1 ? '${(km * 1000).round()} m' : '${decimal(km, digits: 1)} km';

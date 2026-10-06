@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
+import 'package:timezone/data/latest.dart' as tzdata;
 
 import 'core/constants.dart';
 import 'core/routes.dart';
@@ -11,6 +12,7 @@ import 'data/local/secure_store.dart';
 import 'data/remote/ai_api.dart';
 import 'data/remote/api_client.dart';
 import 'data/remote/auth_api.dart';
+import 'data/remote/converter_api.dart';
 import 'data/remote/challenge_api.dart';
 import 'data/local/spot_dao.dart';
 import 'data/local/weather_dao.dart';
@@ -19,6 +21,7 @@ import 'data/remote/spot_api.dart';
 import 'data/remote/weather_api.dart';
 import 'data/remote/user_api.dart';
 import 'data/repositories/auth_repository.dart';
+import 'data/repositories/converter_repository.dart';
 import 'data/repositories/feedback_repository.dart';
 import 'data/repositories/profile_repository.dart';
 import 'data/repositories/spot_repository.dart';
@@ -29,6 +32,7 @@ import 'providers/spot_provider.dart';
 import 'providers/weather_provider.dart';
 import 'services/biometric_service.dart';
 import 'services/location_service.dart';
+import 'services/notification_service.dart';
 import 'ui/screens/login_screen.dart';
 import 'ui/screens/main_shell.dart';
 import 'ui/screens/register_screen.dart';
@@ -38,6 +42,16 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Data format tanggal bahasa Indonesia untuk intl (DateFormat 'id_ID').
   await initializeDateFormatting('id_ID');
+
+  // Database zona waktu IANA (WIB/WITA/WIT/London) untuk konverter & notifikasi.
+  tzdata.initializeTimeZones();
+  final notificationService = NotificationService();
+  try {
+    await notificationService.init();
+  } catch (e) {
+    // Notifikasi gagal diinisialisasi tidak boleh menghentikan aplikasi.
+    debugPrint('Notifikasi tidak tersedia: $e');
+  }
 
   // Susun dependensi sekali di sini (manual dependency injection).
   final store = SecureStore();
@@ -81,6 +95,13 @@ Future<void> main() async {
       providers: [
         Provider<ApiClient>.value(value: apiClient),
         Provider<AiApi>.value(value: AiApi(apiClient)),
+        Provider<NotificationService>.value(value: notificationService),
+        Provider<ConverterRepository>.value(
+          value: ConverterRepository(
+            ConverterApi(apiClient),
+            JsonCache(db, prefix: 'cache_app_'),
+          ),
+        ),
         Provider<DbHelper>.value(value: db),
         Provider<ProfileRepository>.value(
           value: ProfileRepository(

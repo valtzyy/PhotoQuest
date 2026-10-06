@@ -135,6 +135,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Profil'));
     await tester.pumpAndSettle();
+    // Riwayat ada di bawah kartu profil -> gulir dulu.
+    await tester.scrollUntilVisible(
+      find.textContaining('Belum ada percobaan'),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
     expect(find.textContaining('Belum ada percobaan'), findsOneWidget);
   });
 }

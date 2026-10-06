@@ -8,6 +8,7 @@ import '../../data/remote/api_exception.dart';
 import '../../data/repositories/cached_result.dart';
 import '../../data/repositories/profile_repository.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/notification_service.dart';
 import '../widgets/state_views.dart';
 import '../widgets/user_avatar.dart';
 
@@ -120,6 +121,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _testNotification() async {
+    final r = await context.read<NotificationService>().scheduleTest();
+    if (!mounted) return;
+    _snack(
+      r.success
+          ? 'Notifikasi uji akan muncul ±10 detik lagi (boleh keluar dari aplikasi).'
+          : r.error!,
+    );
+  }
+
   Future<void> _toggleBiometric(bool value) async {
     final error = await context.read<AuthProvider>().setBiometricEnabled(value);
     if (error != null && mounted) _snack(error);
@@ -186,6 +197,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     value: auth.biometricEnabled,
                     onChanged: _toggleBiometric,
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.notifications_active_outlined),
+                    title: const Text('Uji Notifikasi (10 detik)'),
+                    subtitle: const Text('Demo notifikasi terjadwal'),
+                    onTap: _testNotification,
                   ),
                 ],
               ),

@@ -9,6 +9,7 @@ import '../../data/models/spot.dart';
 import '../../data/remote/ai_api.dart';
 import '../../data/remote/api_exception.dart';
 import '../../providers/weather_provider.dart';
+import '../../services/notification_service.dart';
 import '../widgets/score_widgets.dart';
 import '../widgets/spot_picker_sheet.dart';
 import '../widgets/state_views.dart';
@@ -182,6 +183,26 @@ class _PlanScreenState extends State<PlanScreen> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  /// "Ingatkan Saya": notifikasi lokal 30 menit sebelum waktu rencana.
+  Future<void> _remind() async {
+    final spot = _spot;
+    final result = _result;
+    if (spot == null) return;
+    final r = await context.read<NotificationService>().scheduleGoldenReminder(
+      spotId: spot.id,
+      spotName: spot.name,
+      plannedAt: _plannedAt,
+      timeLabel: Formatters.timeWib(_plannedAt),
+      score: result?.score,
+    );
+    if (!mounted) return;
+    _snack(
+      r.success
+          ? 'Pengingat dijadwalkan ${Formatters.dateTime(r.at!)}'
+          : r.error!,
+    );
   }
 
   void _askAssistant() {
@@ -417,8 +438,7 @@ class _PlanScreenState extends State<PlanScreen> {
             label: Text(_saved ? 'Tersimpan' : 'Simpan Sesi'),
           ),
           OutlinedButton.icon(
-            // Notifikasi pengingat golden hour dibuat di Fase 9.
-            onPressed: () => _snack('Pengingat (notifikasi) dibuat di Fase 9'),
+            onPressed: _remind,
             icon: const Icon(Icons.notifications_active_outlined),
             label: const Text('Ingatkan Saya'),
           ),
