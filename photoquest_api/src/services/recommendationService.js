@@ -3,6 +3,7 @@
 // Format WAJIB:
 // { "composition": [string], "timing": string, "position": string,
 //   "stability": string, "tips": [string] }
+const config = require('../config');
 const { generateText, LlmUnavailableError } = require('./llmService');
 
 // Template per jenis foto (dipakai jika LLM gagal / timeout / JSON rusak).
@@ -133,6 +134,9 @@ async function getRecommendation(ctx, { generate = generateText } = {}) {
       messages: [{ role: 'user', text: user }],
       json: true,
       temperature: 0.5,
+      // Rute /ai/score sudah memakai ≤ 8 dtk untuk cuaca; total LLM (termasuk
+      // model cadangan) dibatasi 8 dtk agar aplikasi (timeout 20 dtk) tidak habis.
+      budgetMs: config.externalTimeoutMs,
     });
     return { recommendation: validateRecommendation(extractJson(text)), source: 'ai' };
   } catch (err) {
