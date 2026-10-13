@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/config.dart';
+import '../../core/pq_colors.dart';
 import '../../core/routes.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../providers/auth_provider.dart';
+import '../widgets/glass/glass_icon_tile.dart';
+import '../widgets/glass/pq_background.dart';
 
 /// Splash: memutuskan ke mana user diarahkan saat aplikasi dibuka.
 ///
@@ -94,42 +97,45 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.camera_alt_rounded,
-                  size: 72,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(height: 12),
-                Text('PhotoQuest', style: theme.textTheme.headlineMedium),
-                const SizedBox(height: 4),
-                Text(
-                  'Smart Photography Companion',
-                  style: theme.textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 32),
-                if (_busy) const CircularProgressIndicator(),
-                if (_problem != null) ...[
-                  Text(_problem!, textAlign: TextAlign.center),
-                  const SizedBox(height: 16),
-                  FilledButton.icon(
-                    onPressed: _bootstrap,
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Coba lagi'),
+    return PqBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const GlassIconTile(
+                    icon: Icons.camera_alt_rounded,
+                    colors: PqPalette.tileBlue,
+                    size: 96,
                   ),
-                  TextButton(
-                    onPressed: () => _goTo(AppRoutes.login),
-                    child: const Text('Login dengan password'),
+                  const SizedBox(height: 12),
+                  Text('PhotoQuest', style: theme.textTheme.headlineMedium),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Smart Photography Companion',
+                    style: theme.textTheme.bodyMedium,
                   ),
+                  const SizedBox(height: 32),
+                  if (_busy) const CircularProgressIndicator(),
+                  if (_problem != null) ...[
+                    Text(_problem!, textAlign: TextAlign.center),
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: _bootstrap,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Coba lagi'),
+                    ),
+                    TextButton(
+                      onPressed: () => _goTo(AppRoutes.login),
+                      child: const Text('Login dengan password'),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),

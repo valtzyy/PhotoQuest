@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:photoquest_app/core/pq_colors.dart';
 import 'package:photoquest_app/core/theme.dart';
+import 'package:photoquest_app/ui/screens/login_screen.dart';
 import 'package:photoquest_app/ui/widgets/glass/glass_icon_tile.dart';
 import 'package:photoquest_app/ui/widgets/glass/glass_panel.dart';
 import 'package:photoquest_app/ui/widgets/glass/glass_pill.dart';
@@ -155,6 +156,24 @@ void main() {
 
   for (final dark in [false, true]) {
     final name = dark ? 'dark' : 'light';
+    testWidgets('pratinjau login $name', (tester) async {
+      tester.view.physicalSize = const Size(1170, 2532);
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: dark ? AppTheme.dark : AppTheme.light,
+          home: const LoginScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(LoginScreen),
+        matchesGoldenFile('preview/login_$name.png'),
+      );
+    }, skip: !_enabled);
+
     testWidgets('pratinjau galeri $name', (tester) async {
       tester.view.physicalSize = const Size(1170, 3900);
       tester.view.devicePixelRatio = 3;
