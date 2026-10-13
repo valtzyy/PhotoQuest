@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../core/formatters.dart';
+import '../../core/pq_colors.dart';
+import 'glass/glass_icon_tile.dart';
 
 /// Widget standar untuk 4 state layar: loading, error, kosong, dan banner offline.
 
@@ -22,13 +24,16 @@ class ErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.error_outline, size: 40, color: theme.colorScheme.error),
+          const GlassIconTile(
+            icon: Icons.error_outline,
+            colors: PqPalette.tileRed,
+            size: 56,
+          ),
           const SizedBox(height: 8),
           Text(message, textAlign: TextAlign.center),
           if (onRetry != null) ...[
@@ -61,7 +66,7 @@ class EmptyView extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 40, color: Theme.of(context).colorScheme.outline),
+        GlassIconTile(icon: icon, colors: PqPalette.tileBlue, size: 56),
         const SizedBox(height: 8),
         Text(message, textAlign: TextAlign.center),
       ],

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/formatters.dart';
 import '../../providers/sensor_provider.dart';
+import '../widgets/glass/pq_background.dart';
 import '../widgets/sensor_widgets.dart';
 
 /// Level & Stabilizer: accelerometer (kemiringan) + gyroscope (getaran).
@@ -18,27 +19,30 @@ class LevelStabilizerScreen extends StatelessWidget {
       // create + ChangeNotifierProvider -> dispose() otomatis saat layar ditutup,
       // sehingga subscription stream sensor ikut dibatalkan.
       create: (_) => (createSensors?.call() ?? SensorProvider())..start(),
-      child: Scaffold(
-        appBar: AppBar(title: const Text('Level & Stabilizer')),
-        body: Consumer<SensorProvider>(
-          builder: (context, s, _) => ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              _LevelCard(sensors: s),
-              const SizedBox(height: 16),
-              _StabilityCard(sensors: s),
-              const SizedBox(height: 16),
-              const Card(
-                child: ListTile(
-                  leading: Icon(Icons.tips_and_updates_outlined),
-                  title: Text('Tips'),
-                  subtitle: Text(
-                    'Pegang HP dengan dua tangan, rapatkan siku ke badan, '
-                    'dan tahan napas sejenak saat menekan tombol rana.',
+      child: PqBackground(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(title: const Text('Level & Stabilizer')),
+          body: Consumer<SensorProvider>(
+            builder: (context, s, _) => ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                _LevelCard(sensors: s),
+                const SizedBox(height: 16),
+                _StabilityCard(sensors: s),
+                const SizedBox(height: 16),
+                const Card(
+                  child: ListTile(
+                    leading: Icon(Icons.tips_and_updates_outlined),
+                    title: Text('Tips'),
+                    subtitle: Text(
+                      'Pegang HP dengan dua tangan, rapatkan siku ke badan, '
+                      'dan tahan napas sejenak saat menekan tombol rana.',
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../../core/pq_colors.dart';
 import '../../data/models/score_result.dart';
+import 'glass/glass_progress_bar.dart';
 
 /// Warna skor sesuai label: ≥80 hijau, 60–79 hijau muda, 40–59 kuning, <40 merah.
 Color scoreColor(int score) {
-  if (score >= 80) return const Color(0xFF2E7D32);
-  if (score >= 60) return const Color(0xFF7CB342);
-  if (score >= 40) return const Color(0xFFF9A825);
-  return const Color(0xFFC62828);
+  if (score >= 80) return PqPalette.success;
+  if (score >= 60) return PqPalette.okay;
+  if (score >= 40) return PqPalette.warning;
+  return PqPalette.danger;
 }
 
 /// Gauge melingkar skor 0–100 dengan label di tengah.
@@ -81,11 +83,7 @@ class ScoreBreakdownList extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 4),
-                LinearProgressIndicator(
-                  value: c.score / c.max,
-                  minHeight: 8,
-                  borderRadius: BorderRadius.circular(4),
-                ),
+                GlassProgressBar(value: c.score / c.max, height: 10),
                 const SizedBox(height: 2),
                 Text(c.note, style: small),
               ],

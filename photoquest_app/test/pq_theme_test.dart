@@ -122,6 +122,102 @@ void main() {
     await gesture.up();
   });
 
+  testWidgets('ikon IconButton.filled memakai onPrimary, bukan warna teks', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      themed(
+        IconButton.filled(onPressed: () {}, icon: const Icon(Icons.camera_alt)),
+      ),
+    );
+    final color = IconTheme.of(tester.element(find.byIcon(Icons.camera_alt)))
+        .color;
+    expect(color, AppTheme.light.colorScheme.onPrimary);
+  });
+
+  for (final theme in [AppTheme.light, AppTheme.dark]) {
+    testWidgets('dialog date/time picker opak (${theme.brightness.name})', (
+      tester,
+    ) async {
+      late BuildContext ctx;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: theme,
+          home: Builder(
+            builder: (c) {
+              ctx = c;
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
+
+      showDatePicker(
+        context: ctx,
+        firstDate: DateTime(2026),
+        lastDate: DateTime(2027),
+        initialDate: DateTime(2026, 10, 13),
+      );
+      await tester.pumpAndSettle();
+      final dateBg = tester.widget<Dialog>(find.byType(Dialog)).backgroundColor;
+      expect(dateBg?.a, 1.0, reason: 'date picker backgroundColor=$dateBg');
+      Navigator.of(ctx).pop();
+      await tester.pumpAndSettle();
+
+      showTimePicker(
+        context: ctx,
+        initialTime: const TimeOfDay(hour: 17, minute: 0),
+      );
+      await tester.pumpAndSettle();
+      final timeBg = tester.widget<Dialog>(find.byType(Dialog)).backgroundColor;
+      expect(timeBg?.a, 1.0, reason: 'time picker backgroundColor=$timeBg');
+      final tp = theme.timePickerTheme;
+      expect(tp.dialBackgroundColor?.a, 1.0);
+      expect(tp.hourMinuteColor?.a, 1.0);
+      // Kotak jam/menit yang sedang dipilih tetap disorot (beda warna).
+      final selected = WidgetStateProperty.resolveAs(tp.hourMinuteColor, {
+        WidgetState.selected,
+      });
+      final idle = WidgetStateProperty.resolveAs(
+        tp.hourMinuteColor,
+        <WidgetState>{},
+      );
+      expect(selected?.a, 1.0);
+      expect(selected, isNot(idle));
+    });
+  }
+
+  testWidgets('spinner loading di tombol nonaktif memakai warna onColor', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      themed(
+        const FilledButton(
+          onPressed: null,
+          child: SizedBox(
+            height: 20,
+            width: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      ),
+    );
+    final indicatorTheme = ProgressIndicatorTheme.of(
+      tester.element(find.byType(CircularProgressIndicator)),
+    );
+    expect(indicatorTheme.color, PqPalette.blueTone.onColor);
+  });
+
+  testWidgets('label tombol nonaktif hanya diredupkan sekali (Opacity)', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      themed(const FilledButton(onPressed: null, child: Text('Analisis'))),
+    );
+    final style = DefaultTextStyle.of(tester.element(find.text('Analisis')));
+    expect(style.style.color, PqPalette.blueTone.onColor);
+  });
+
   testWidgets('OutlinedButton bertema juga memakai GlassSurface', (
     tester,
   ) async {

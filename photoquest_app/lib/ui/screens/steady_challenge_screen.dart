@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/formatters.dart';
+import '../../core/pq_colors.dart';
 import '../../core/sensor_math.dart';
 import '../../core/steady_challenge.dart';
 import '../../data/remote/api_exception.dart';
 import '../../data/remote/challenge_api.dart';
 import '../../providers/sensor_provider.dart';
+import '../widgets/glass/pq_background.dart';
 import '../widgets/sensor_widgets.dart';
 import 'chain_explorer_screen.dart';
 
@@ -124,30 +126,33 @@ class _ChallengeViewState extends State<_ChallengeView> {
     final sensors = context.watch<SensorProvider>();
     final sensorError = sensors.accelError ?? sensors.gyroError;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Steady Shot Challenge')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          if (sensorError != null)
-            Card(
-              color: Theme.of(context).colorScheme.errorContainer,
-              child: ListTile(
-                leading: const Icon(Icons.sensors_off),
-                title: Text(sensorError),
-                subtitle: const Text(
-                  'Challenge membutuhkan accelerometer dan gyroscope.',
+    return PqBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(title: const Text('Steady Shot Challenge')),
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            if (sensorError != null)
+              Card(
+                color: Theme.of(context).colorScheme.errorContainer,
+                child: ListTile(
+                  leading: const Icon(Icons.sensors_off),
+                  title: Text(sensorError),
+                  subtitle: const Text(
+                    'Challenge membutuhkan accelerometer dan gyroscope.',
+                  ),
                 ),
-              ),
-            )
-          else
-            ...switch (_phase) {
-              _Phase.idle => _idle(),
-              _Phase.countdown => _countdownView(),
-              _Phase.running => _running(sensors),
-              _Phase.finished => _result(),
-            },
-        ],
+              )
+            else
+              ...switch (_phase) {
+                _Phase.idle => _idle(),
+                _Phase.countdown => _countdownView(),
+                _Phase.running => _running(sensors),
+                _Phase.finished => _result(),
+              },
+          ],
+        ),
       ),
     );
   }
@@ -192,7 +197,7 @@ class _ChallengeViewState extends State<_ChallengeView> {
   List<Widget> _running(SensorProvider s) {
     final theme = Theme.of(context);
     final steady = s.isLevelNow && s.shake < SteadyChallenge.shakeLimit;
-    final color = steady ? const Color(0xFF2E7D32) : const Color(0xFFEF6C00);
+    final color = steady ? PqPalette.success : PqPalette.orange;
     return [
       Center(
         child: SizedBox(
@@ -248,7 +253,7 @@ class _ChallengeViewState extends State<_ChallengeView> {
       Icon(
         g.success ? Icons.emoji_events : Icons.sentiment_dissatisfied,
         size: 80,
-        color: g.success ? const Color(0xFFF9A825) : theme.colorScheme.outline,
+        color: g.success ? PqPalette.gold : theme.colorScheme.outline,
       ),
       Text(
         g.success ? 'Berhasil!' : 'Belum berhasil',
@@ -290,9 +295,8 @@ class _ChallengeViewState extends State<_ChallengeView> {
         )
       else if (_submitResult?.blockIndex != null)
         Card(
-          color: const Color(0xFFE8F5E9),
           child: ListTile(
-            leading: const Icon(Icons.link, color: Color(0xFF2E7D32)),
+            leading: const Icon(Icons.link, color: PqPalette.success),
             title: Text(
               'Tercatat di blockchain ✓ (block #${_submitResult!.blockIndex})',
             ),

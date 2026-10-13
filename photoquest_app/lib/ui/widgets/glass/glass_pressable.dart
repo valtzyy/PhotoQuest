@@ -68,17 +68,17 @@ Widget onColorTheme(BuildContext context, Color on, Widget child) {
     data: theme.copyWith(
       textTheme: theme.textTheme.apply(bodyColor: on, displayColor: on),
       iconTheme: theme.iconTheme.copyWith(color: on),
-      listTileTheme: theme.listTileTheme.copyWith(
-        textColor: on,
-        iconColor: on,
-      ),
+      listTileTheme: theme.listTileTheme.copyWith(textColor: on, iconColor: on),
       dividerTheme: theme.dividerTheme.copyWith(
         color: on.withValues(alpha: 0.3),
       ),
     ),
     child: DefaultTextStyle.merge(
       style: TextStyle(color: on),
-      child: IconTheme.merge(data: IconThemeData(color: on), child: child),
+      child: IconTheme.merge(
+        data: IconThemeData(color: on),
+        child: child,
+      ),
     ),
   );
 }

@@ -12,8 +12,9 @@ import 'package:photoquest_app/ui/widgets/glass/glass_surface.dart';
 import 'package:photoquest_app/ui/widgets/glass/holo_card_frame.dart';
 import 'package:photoquest_app/ui/widgets/glass/pq_background.dart';
 
-Widget _host(Widget child) =>
-    MaterialApp(home: Scaffold(body: Center(child: child)));
+Widget _host(Widget child) => MaterialApp(
+  home: Scaffold(body: Center(child: child)),
+);
 
 /// Pergeseran vertikal permukaan kaca (0 = diam, 3 = amblas penuh).
 double _dy(WidgetTester tester) => tester
@@ -37,9 +38,7 @@ void main() {
     expect(taps, 1);
   });
 
-  testWidgets('amblas sedalam bibir saat ditekan lalu kembali', (
-    tester,
-  ) async {
+  testWidgets('amblas sedalam bibir saat ditekan lalu kembali', (tester) async {
     await tester.pumpWidget(
       _host(GlassPressable(onTap: () {}, child: const Text('Tekan'))),
     );
@@ -97,6 +96,41 @@ void main() {
       );
       expect(box.widthFactor, expected, reason: 'value=$value');
     }
+  });
+
+  testWidgets('tile menu dengan label panjang tidak overflow', (tester) async {
+    await tester.pumpWidget(
+      _host(
+        SizedBox(
+          width: 100,
+          height: 100,
+          child: GlassPressable(
+            onTap: () {},
+            padding: const EdgeInsets.all(8),
+            child: const Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                GlassIconTile(
+                  icon: Icons.straighten,
+                  colors: PqPalette.tileYellow,
+                  size: 40,
+                ),
+                SizedBox(height: 6),
+                Flexible(
+                  child: Text(
+                    'Level & Stabilizer yang sangat panjang sekali',
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('HoloCardFrame bisa ditekan', (tester) async {

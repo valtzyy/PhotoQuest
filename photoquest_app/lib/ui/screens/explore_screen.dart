@@ -5,6 +5,7 @@ import '../../core/constants.dart';
 import '../../data/models/spot.dart';
 import '../../providers/location_provider.dart';
 import '../../providers/spot_provider.dart';
+import '../widgets/glass/pq_background.dart';
 import '../widgets/location_permission.dart';
 import '../widgets/spot_card.dart';
 import '../widgets/state_views.dart';
@@ -52,78 +53,84 @@ class _ExploreScreenState extends State<ExploreScreen> {
   @override
   Widget build(BuildContext context) {
     final p = context.watch<SpotProvider>();
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Explore Spot'),
-        actions: [
-          IconButton(
-            tooltip: 'Gunakan lokasi saya',
-            onPressed: () => requestLocationWithRationale(context),
-            icon: const Icon(Icons.my_location),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Kolom pencarian
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: TextField(
-              controller: _searchCtrl,
-              textInputAction: TextInputAction.search,
-              decoration: InputDecoration(
-                hintText: 'Cari nama atau deskripsi spot',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchCtrl.text.isEmpty
-                    ? null
-                    : IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchCtrl.clear();
-                          p.setQuery('');
-                          setState(() {});
-                        },
-                      ),
-              ),
-              onChanged: (v) {
-                p.setQuery(v);
-                setState(() {}); // tampilkan/sembunyikan tombol clear
-              },
+    return PqBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: const Text('Explore Spot'),
+          actions: [
+            IconButton(
+              tooltip: 'Gunakan lokasi saya',
+              onPressed: () => requestLocationWithRationale(context),
+              icon: const Icon(Icons.my_location),
             ),
-          ),
-          // Chip filter kategori + favorit
-          SizedBox(
-            height: 56,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              children: [
-                FilterChip(
-                  avatar: const Icon(Icons.favorite, size: 18),
-                  label: const Text('Favorit'),
-                  selected: p.favoritesOnly,
-                  onSelected: p.setFavoritesOnly,
+          ],
+        ),
+        body: Column(
+          children: [
+            // Kolom pencarian
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: TextField(
+                controller: _searchCtrl,
+                textInputAction: TextInputAction.search,
+                decoration: InputDecoration(
+                  hintText: 'Cari nama atau deskripsi spot',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _searchCtrl.text.isEmpty
+                      ? null
+                      : IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            _searchCtrl.clear();
+                            p.setQuery('');
+                            setState(() {});
+                          },
+                        ),
                 ),
-                const SizedBox(width: 8),
-                ChoiceChip(
-                  label: const Text('Semua'),
-                  selected: p.category == null,
-                  onSelected: (_) => p.setCategory(null),
+                onChanged: (v) {
+                  p.setQuery(v);
+                  setState(() {}); // tampilkan/sembunyikan tombol clear
+                },
+              ),
+            ),
+            // Chip filter kategori + favorit
+            SizedBox(
+              height: 56,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
                 ),
-                for (final c in AppConstants.spotCategories) ...[
+                children: [
+                  FilterChip(
+                    avatar: const Icon(Icons.favorite, size: 18),
+                    label: const Text('Favorit'),
+                    selected: p.favoritesOnly,
+                    onSelected: p.setFavoritesOnly,
+                  ),
                   const SizedBox(width: 8),
                   ChoiceChip(
-                    label: Text(Labels.category(c)),
-                    selected: p.category == c,
-                    onSelected: (_) => p.setCategory(c),
+                    label: const Text('Semua'),
+                    selected: p.category == null,
+                    onSelected: (_) => p.setCategory(null),
                   ),
+                  for (final c in AppConstants.spotCategories) ...[
+                    const SizedBox(width: 8),
+                    ChoiceChip(
+                      label: Text(Labels.category(c)),
+                      selected: p.category == c,
+                      onSelected: (_) => p.setCategory(c),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-          if (p.fromCache && !p.loading) OfflineBanner(cachedAt: p.cachedAt),
-          Expanded(child: _buildList(p)),
-        ],
+            if (p.fromCache && !p.loading) OfflineBanner(cachedAt: p.cachedAt),
+            Expanded(child: _buildList(p)),
+          ],
+        ),
       ),
     );
   }
@@ -167,11 +174,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
             );
           }
           final s = spots[i - 1];
-          return SpotCard(
-            spot: s,
-            isFavorite: p.isFavorite(s.id),
-            distanceKm: loc.distanceTo(s),
-            onTap: () => _openDetail(s),
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: SpotCard(
+              spot: s,
+              isFavorite: p.isFavorite(s.id),
+              distanceKm: loc.distanceTo(s),
+              onTap: () => _openDetail(s),
+            ),
           );
         },
       ),

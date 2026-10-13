@@ -5,10 +5,12 @@ import 'package:provider/provider.dart';
 
 import '../../core/constants.dart';
 import '../../core/formatters.dart';
+import '../../core/pq_colors.dart';
 import '../../data/models/spot.dart';
 import '../../data/remote/api_exception.dart';
 import '../../data/repositories/spot_repository.dart';
 import '../../providers/location_provider.dart';
+import '../widgets/glass/pq_background.dart';
 import '../widgets/location_permission.dart';
 import '../widgets/state_views.dart';
 import 'spot_detail_screen.dart';
@@ -85,46 +87,50 @@ class _NearbyMapScreenState extends State<NearbyMapScreen> {
     final loc = context.watch<LocationProvider>();
     final nearest = loc.sortByDistance(_spots);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Peta Terdekat'),
-        actions: [
-          IconButton(
-            tooltip: 'Perbarui lokasi',
-            onPressed: loc.loading
-                ? null
-                : () async {
-                    await requestLocationWithRationale(context);
-                    _centerOnUser();
-                  },
-            icon: const Icon(Icons.my_location),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Status sumber lokasi + toggle lokasi demo
-          SwitchListTile(
-            dense: true,
-            secondary: Icon(loc.isDemo ? Icons.push_pin : Icons.gps_fixed),
-            title: const Text('Gunakan lokasi demo (Tugu Jogja)'),
-            subtitle: Text(
-              loc.loading
-                  ? 'Mencari lokasi GPS...'
-                  : loc.message ?? (loc.isDemo ? 'Lokasi demo' : 'Lokasi GPS'),
+    return PqBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: const Text('Peta Terdekat'),
+          actions: [
+            IconButton(
+              tooltip: 'Perbarui lokasi',
+              onPressed: loc.loading
+                  ? null
+                  : () async {
+                      await requestLocationWithRationale(context);
+                      _centerOnUser();
+                    },
+              icon: const Icon(Icons.my_location),
             ),
-            value: loc.useDemo,
-            onChanged: loc.loading
-                ? null
-                : (v) async {
-                    await loc.setUseDemo(v);
-                    _centerOnUser();
-                  },
-          ),
-          if (_fromCache) const OfflineBanner(),
-          Expanded(flex: 3, child: _buildMap(loc)),
-          Expanded(flex: 2, child: _buildNearestList(loc, nearest)),
-        ],
+          ],
+        ),
+        body: Column(
+          children: [
+            // Status sumber lokasi + toggle lokasi demo
+            SwitchListTile(
+              dense: true,
+              secondary: Icon(loc.isDemo ? Icons.push_pin : Icons.gps_fixed),
+              title: const Text('Gunakan lokasi demo (Tugu Jogja)'),
+              subtitle: Text(
+                loc.loading
+                    ? 'Mencari lokasi GPS...'
+                    : loc.message ??
+                          (loc.isDemo ? 'Lokasi demo' : 'Lokasi GPS'),
+              ),
+              value: loc.useDemo,
+              onChanged: loc.loading
+                  ? null
+                  : (v) async {
+                      await loc.setUseDemo(v);
+                      _centerOnUser();
+                    },
+            ),
+            if (_fromCache) const OfflineBanner(),
+            Expanded(flex: 3, child: _buildMap(loc)),
+            Expanded(flex: 2, child: _buildNearestList(loc, nearest)),
+          ],
+        ),
       ),
     );
   }
@@ -180,7 +186,7 @@ class _NearbyMapScreenState extends State<NearbyMapScreen> {
                 child: Icon(
                   loc.isDemo ? Icons.push_pin : Icons.person_pin_circle,
                   size: 44,
-                  color: Colors.blue,
+                  color: PqPalette.blue,
                 ),
               ),
           ],

@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/formatters.dart';
+import '../../core/pq_colors.dart';
 import '../../data/models/challenge_attempt.dart';
 import '../../data/remote/api_exception.dart';
 import '../../data/repositories/cached_result.dart';
@@ -144,6 +145,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(title: const Text('Profil')),
       body: RefreshIndicator(
         onRefresh: _loadHistory,
@@ -244,7 +246,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               leading: Icon(
                 a.success ? Icons.check_circle : Icons.cancel,
                 color: a.success
-                    ? Colors.green
+                    ? PqPalette.success
                     : Theme.of(context).colorScheme.error,
               ),
               title: Text(a.success ? 'Berhasil' : 'Gagal'),

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../core/constants.dart';
 import '../../core/formatters.dart';
+import '../../core/pq_colors.dart';
 import '../../data/models/spot.dart';
+import 'glass/holo_card_frame.dart';
 import 'spot_placeholder.dart';
 
 /// Kartu spot di daftar Explore: gambar/placeholder, nama, kategori, jarak (jika ada).
@@ -25,63 +27,57 @@ class SpotCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Row(
-          children: [
-            SizedBox(
-              width: 96,
-              height: 96,
+    // Kartu koleksi horizontal: gambar di kiri, info di kanan (ringkas agar
+    // beberapa spot terlihat sekaligus di daftar).
+    return HoloCardFrame(
+      onTap: onTap,
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: SizedBox(
+              width: 84,
+              height: 84,
               child: SpotPlaceholder(category: spot.category, iconSize: 36),
             ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  spot.name,
+                  style: theme.textTheme.titleMedium,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      spot.name,
-                      style: theme.textTheme.titleMedium,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${Labels.category(spot.category)} · ${Labels.bestTime(spot.bestTime)}',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                    if (distanceKm != null) ...[
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          const Icon(Icons.near_me, size: 14),
-                          const SizedBox(width: 4),
-                          Text(
-                            Formatters.distance(distanceKm!),
-                            style: theme.textTheme.bodySmall,
-                          ),
-                        ],
+                const SizedBox(height: 2),
+                Text(
+                  '${Labels.category(spot.category)} · ${Labels.bestTime(spot.bestTime)}',
+                  style: theme.textTheme.bodySmall,
+                ),
+                if (distanceKm != null) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.near_me, size: 14),
+                      const SizedBox(width: 4),
+                      Text(
+                        Formatters.distance(distanceKm!),
+                        style: theme.textTheme.bodySmall,
                       ),
                     ],
-                  ],
-                ),
-              ),
+                  ),
+                ],
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Icon(
-                isFavorite ? Icons.favorite : Icons.favorite_border,
-                color: isFavorite ? Colors.red : theme.colorScheme.outline,
-              ),
-            ),
-          ],
-        ),
+          ),
+          Icon(
+            isFavorite ? Icons.favorite : Icons.favorite_border,
+            color: isFavorite ? PqPalette.danger : theme.colorScheme.outline,
+          ),
+        ],
       ),
     );
   }

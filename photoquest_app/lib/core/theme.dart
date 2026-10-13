@@ -54,6 +54,14 @@ class AppTheme {
     final overlayBg = isLight
         ? const Color(0xF2FFFFFF)
         : const Color(0xF21E2B45);
+    // Date/time picker memakai surfaceContainerHigh(est) (= panel transparan)
+    // dan tidak membaca dialogTheme, jadi diberi warna opak sendiri.
+    final pickerBg = isLight
+        ? const Color(0xFFF7FAFE)
+        : const Color(0xFF1E2B45);
+    final pickerWell = isLight
+        ? const Color(0xFFE6EEF8)
+        : const Color(0xFF2A3A5C);
     const bold = TextStyle(fontFamily: fontFamily, fontWeight: FontWeight.w700);
     const medium = TextStyle(
       fontFamily: fontFamily,
@@ -64,7 +72,8 @@ class AppTheme {
       colorScheme: scheme,
       textTheme: text,
       scaffoldBackgroundColor: c.bgBase,
-      iconTheme: IconThemeData(color: c.text),
+      // iconTheme sengaja tidak di-set: default M3 memakai onSurface (= c.text),
+      // dan iconTheme eksplisit mengalahkan warna ikon IconButton.filled.
       extensions: [c],
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
@@ -171,6 +180,19 @@ class AppTheme {
         titleTextStyle: text.titleLarge,
         contentTextStyle: text.bodyMedium,
       ),
+      datePickerTheme: DatePickerThemeData(
+        backgroundColor: pickerBg,
+        surfaceTintColor: Colors.transparent,
+      ),
+      timePickerTheme: TimePickerThemeData(
+        backgroundColor: pickerBg,
+        dialBackgroundColor: pickerWell,
+        hourMinuteColor: WidgetStateColor.resolveWith(
+          (s) => s.contains(WidgetState.selected)
+              ? (isLight ? const Color(0xFFBFE4FA) : const Color(0xFF1E3A66))
+              : pickerWell,
+        ),
+      ),
       bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: overlayBg,
         modalBackgroundColor: overlayBg,
@@ -271,22 +293,23 @@ class AppTheme {
         fontSize: 15,
       ),
     ),
-    foregroundColor: WidgetStateProperty.resolveWith(
-      (s) => s.contains(WidgetState.disabled)
-          ? tone.onColor.withValues(alpha: 0.6)
-          : tone.onColor,
-    ),
-    iconColor: WidgetStateProperty.resolveWith(
-      (s) => s.contains(WidgetState.disabled)
-          ? tone.onColor.withValues(alpha: 0.6)
-          : tone.onColor,
-    ),
+    // Warna penuh juga saat nonaktif: peredupan cukup sekali lewat
+    // GlassSurface.dimmed (Opacity).
+    foregroundColor: WidgetStatePropertyAll(tone.onColor),
+    iconColor: WidgetStatePropertyAll(tone.onColor),
     backgroundBuilder: (context, states, child) => GlassSurface(
       tone: tone,
       pressed: states.contains(WidgetState.pressed),
       dimmed: states.contains(WidgetState.disabled),
       haptic: true,
-      child: child ?? const SizedBox.shrink(),
+      // Spinner loading di dalam tombol mengikuti warna teks tombol,
+      // bukan biru tema yang tak terlihat di atas kaca biru.
+      child: ProgressIndicatorTheme(
+        data: ProgressIndicatorTheme.of(
+          context,
+        ).copyWith(color: tone.onColor, circularTrackColor: Colors.transparent),
+        child: child ?? const SizedBox.shrink(),
+      ),
     ),
   );
 }

@@ -10,6 +10,7 @@ import '../../data/remote/ai_api.dart';
 import '../../data/remote/api_exception.dart';
 import '../../providers/weather_provider.dart';
 import '../../services/notification_service.dart';
+import '../widgets/glass/pq_background.dart';
 import '../widgets/score_widgets.dart';
 import '../widgets/spot_picker_sheet.dart';
 import '../widgets/state_views.dart';
@@ -240,124 +241,129 @@ class _PlanScreenState extends State<PlanScreen> {
     final theme = Theme.of(context);
     final spot = _spot;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Plan (AI)'),
-        actions: [
-          IconButton(
-            tooltip: 'Sesi tersimpan',
-            onPressed: _showSessions,
-            icon: const Icon(Icons.history),
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // 1. Spot (selection)
-          Text('1. Spot', style: theme.textTheme.titleSmall),
-          Card(
-            child: ListTile(
-              leading: Icon(
-                spot == null
-                    ? Icons.add_location_alt
-                    : Labels.categoryIcon(spot.category),
-              ),
-              title: Text(spot?.name ?? 'Pilih spot'),
-              subtitle: spot == null
-                  ? const Text('Wajib dipilih')
-                  : Text('Waktu terbaik: ${Labels.bestTime(spot.bestTime)}'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: _pickSpot,
+    return PqBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: const Text('Plan (AI)'),
+          actions: [
+            IconButton(
+              tooltip: 'Sesi tersimpan',
+              onPressed: _showSessions,
+              icon: const Icon(Icons.history),
             ),
-          ),
-          const SizedBox(height: 12),
+          ],
+        ),
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // 1. Spot (selection)
+            Text('1. Spot', style: theme.textTheme.titleSmall),
+            Card(
+              child: ListTile(
+                leading: Icon(
+                  spot == null
+                      ? Icons.add_location_alt
+                      : Labels.categoryIcon(spot.category),
+                ),
+                title: Text(spot?.name ?? 'Pilih spot'),
+                subtitle: spot == null
+                    ? const Text('Wajib dipilih')
+                    : Text('Waktu terbaik: ${Labels.bestTime(spot.bestTime)}'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: _pickSpot,
+              ),
+            ),
+            const SizedBox(height: 12),
 
-          // 2. Jenis foto (★ = cocok dengan spot)
-          Text('2. Jenis foto', style: theme.textTheme.titleSmall),
-          const SizedBox(height: 4),
-          Wrap(
-            spacing: 8,
-            runSpacing: 4,
-            children: [
-              for (final t in _photoTypes)
-                ChoiceChip(
-                  label: Text(
-                    '${Labels.photoType(t)}${spot?.photoTypes.contains(t) == true ? ' ★' : ''}',
+            // 2. Jenis foto (★ = cocok dengan spot)
+            Text('2. Jenis foto', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 4),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                for (final t in _photoTypes)
+                  ChoiceChip(
+                    label: Text(
+                      '${Labels.photoType(t)}${spot?.photoTypes.contains(t) == true ? ' ★' : ''}',
+                    ),
+                    selected: _photoType == t,
+                    onSelected: (_) => _changed(() => _photoType = t),
                   ),
-                  selected: _photoType == t,
-                  onSelected: (_) => _changed(() => _photoType = t),
-                ),
-            ],
-          ),
-          if (spot != null)
-            Text('★ cocok untuk spot ini', style: theme.textTheme.bodySmall),
-          const SizedBox(height: 12),
+              ],
+            ),
+            if (spot != null)
+              Text('★ cocok untuk spot ini', style: theme.textTheme.bodySmall),
+            const SizedBox(height: 12),
 
-          // 3. Waktu
-          Text('3. Tanggal & jam', style: theme.textTheme.titleSmall),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _pickDate,
-                  icon: const Icon(Icons.calendar_today),
-                  label: Text(DateFormat('EEE, d MMM', 'id_ID').format(_date)),
+            // 3. Waktu
+            Text('3. Tanggal & jam', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _pickDate,
+                    icon: const Icon(Icons.calendar_today),
+                    label: Text(
+                      DateFormat('EEE, d MMM', 'id_ID').format(_date),
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _pickTime,
-                  icon: const Icon(Icons.access_time),
-                  label: Text(_time.format(context)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _pickTime,
+                    icon: const Icon(Icons.access_time),
+                    label: Text(_time.format(context)),
+                  ),
                 ),
-              ),
-            ],
-          ),
-          _goldenShortcuts(),
-          const SizedBox(height: 12),
+              ],
+            ),
+            _goldenShortcuts(),
+            const SizedBox(height: 12),
 
-          // 4. Cuaca
-          Text('4. Cuaca', style: theme.textTheme.titleSmall),
-          const SizedBox(height: 4),
-          SegmentedButton<WeatherChoice>(
-            showSelectedIcon: false,
-            segments: [
-              for (final w in WeatherChoice.values)
-                ButtonSegment(
-                  value: w,
-                  label: Text(w.label),
-                  icon: Icon(w.icon),
-                ),
-            ],
-            selected: {_weather},
-            onSelectionChanged: (s) => _changed(() => _weather = s.first),
-          ),
-          Text(
-            _weather == WeatherChoice.auto
-                ? 'Memakai prakiraan awan & hujan dari Open-Meteo.'
-                : 'Manual: awan ${_weather.cloudCover}%, hujan ${_weather.rainProb}% (menimpa prakiraan).',
-            style: theme.textTheme.bodySmall,
-          ),
-          const SizedBox(height: 16),
+            // 4. Cuaca
+            Text('4. Cuaca', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 4),
+            SegmentedButton<WeatherChoice>(
+              showSelectedIcon: false,
+              segments: [
+                for (final w in WeatherChoice.values)
+                  ButtonSegment(
+                    value: w,
+                    label: Text(w.label),
+                    icon: Icon(w.icon),
+                  ),
+              ],
+              selected: {_weather},
+              onSelectionChanged: (s) => _changed(() => _weather = s.first),
+            ),
+            Text(
+              _weather == WeatherChoice.auto
+                  ? 'Memakai prakiraan awan & hujan dari Open-Meteo.'
+                  : 'Manual: awan ${_weather.cloudCover}%, hujan ${_weather.rainProb}% (menimpa prakiraan).',
+              style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: 16),
 
-          FilledButton.icon(
-            onPressed: spot == null || _analyzing ? null : _analyze,
-            icon: _analyzing
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.insights),
-            label: Text(_analyzing ? 'Menganalisis...' : 'Analisis'),
-          ),
-          const SizedBox(height: 16),
-          if (_error != null) ErrorView(message: _error!, onRetry: _analyze),
-          if (_result != null) ..._buildResult(_result!),
-        ],
+            FilledButton.icon(
+              onPressed: spot == null || _analyzing ? null : _analyze,
+              icon: _analyzing
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.insights),
+              label: Text(_analyzing ? 'Menganalisis...' : 'Analisis'),
+            ),
+            const SizedBox(height: 16),
+            if (_error != null) ErrorView(message: _error!, onRetry: _analyze),
+            if (_result != null) ..._buildResult(_result!),
+          ],
+        ),
       ),
     );
   }
