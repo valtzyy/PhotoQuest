@@ -195,6 +195,27 @@ Kartu hero di Home menampilkan lencana bulat (contoh: "82 SKOR") dan pil label
 - **Konsekuensi.** Rumus ada di dua tempat. Komentar di file Dart menunjuk ke file
   backend sebagai sumbernya.
 
+## 5b. Fitur tambahan: pilihan tema di Profil
+
+Disetujui pengguna pada 2026-10-13. Sebelumnya mode gelap sudah ada, tetapi hanya
+mengikuti pengaturan sistem HP.
+
+- **Tampilan.** Di kartu pengaturan Profil, di bawah "Login biometrik", ada baris
+  "Tema tampilan" dengan `SegmentedButton` tiga pilihan: Sistem (default, sama
+  dengan perilaku lama), Terang, dan Gelap.
+- **Perilaku.** Tema berganti langsung tanpa restart. Pilihan disimpan di tabel
+  `settings` dengan kunci `theme_mode`, berisi `system`, `light`, atau `dark`.
+  Pilihan ini bertahan setelah aplikasi ditutup dan tidak terhapus saat logout.
+- **Kode:**
+  - `ThemeModeProvider` (ChangeNotifier). Penyimpanannya diinjeksi sebagai fungsi
+    baca/tulis.
+  - `main.dart` memuat provider sebelum `runApp`. Jika gagal, tema jatuh ke Sistem.
+  - `MaterialApp.themeMode` membaca provider ini.
+  - Widget `ThemeModeTile` hanya tampil jika provider tersedia, supaya test lama
+    yang memasang Profil tanpa provider tetap lulus.
+- **Cakupan berubah.** `lib/main.dart`, `lib/providers/theme_mode_provider.dart`,
+  dan `lib/ui/widgets/theme_mode_tile.dart` kini masuk cakupan.
+
 ## 6. Tahapan implementasi
 
 Berhenti dan lapor ke pengguna setelah setiap tahap.

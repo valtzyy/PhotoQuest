@@ -30,6 +30,7 @@ import 'data/repositories/weather_repository.dart';
 import 'providers/auth_provider.dart';
 import 'providers/location_provider.dart';
 import 'providers/spot_provider.dart';
+import 'providers/theme_mode_provider.dart';
 import 'providers/weather_provider.dart';
 import 'services/biometric_service.dart';
 import 'services/location_service.dart';
@@ -72,6 +73,18 @@ Future<void> main() async {
   final weatherProvider = WeatherProvider(
     WeatherRepository(WeatherApi(apiClient), WeatherDao(db)),
   );
+
+  // Pilihan tema (Sistem/Terang/Gelap) dari Profil, disimpan di tabel settings.
+  final themeModeProvider = ThemeModeProvider(
+    read: () => db.getSetting(ThemeModeProvider.settingKey),
+    write: (value) => db.setSetting(ThemeModeProvider.settingKey, value),
+  );
+  try {
+    await themeModeProvider.load();
+  } catch (e) {
+    // Gagal dibaca -> tetap ikuti tema sistem.
+    debugPrint('Preferensi tema tidak terbaca: $e');
+  }
 
   // Setelah logout, favorit user sebelumnya tidak boleh terlihat user berikutnya.
   authProvider.addListener(() {
@@ -121,6 +134,9 @@ Future<void> main() async {
         ChangeNotifierProvider<SpotProvider>.value(value: spotProvider),
         ChangeNotifierProvider<LocationProvider>.value(value: locationProvider),
         ChangeNotifierProvider<WeatherProvider>.value(value: weatherProvider),
+        ChangeNotifierProvider<ThemeModeProvider>.value(
+          value: themeModeProvider,
+        ),
       ],
       child: const PhotoQuestApp(),
     ),
@@ -137,6 +153,7 @@ class PhotoQuestApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
+      themeMode: context.watch<ThemeModeProvider>().mode,
       navigatorKey: navigatorKey,
       scaffoldMessengerKey: scaffoldMessengerKey,
       initialRoute: AppRoutes.splash,

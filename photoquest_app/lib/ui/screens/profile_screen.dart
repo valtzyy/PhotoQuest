@@ -10,6 +10,7 @@ import '../../data/repositories/profile_repository.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/notification_service.dart';
 import '../widgets/state_views.dart';
+import '../widgets/theme_mode_tile.dart';
 import '../widgets/user_avatar.dart';
 
 /// Tab Profil: foto profil, nama, email, toggle biometrik, riwayat challenge.
@@ -198,6 +199,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     value: auth.biometricEnabled,
                     onChanged: _toggleBiometric,
                   ),
+                  const ThemeModeTile(),
                   ListTile(
                     leading: const Icon(Icons.notifications_active_outlined),
                     title: const Text('Uji Notifikasi (10 detik)'),

@@ -2645,3 +2645,31 @@ const _tiltColor = PqPalette.orange; // oranye
 
 - [ ] **Step 12: STOP — akhir Tahap 4 (selesai).**
   Laporkan ke pengguna: hasil analyze dan test, daftar file yang diubah, dan hal yang perlu dicek manual di HP (efek tekan dan haptic, blur nav, mode gelap, kelancaran scroll di daftar Explore). Sertakan saran pesan commit gabungan.
+
+---
+
+### Task 10: Pilihan tema di Profil (dikerjakan setelah Task 4, sebelum Task 5)
+
+Ditambahkan atas persetujuan pengguna pada 2026-10-13 (spec bagian 5b).
+
+**Files:**
+- Create: `photoquest_app/lib/providers/theme_mode_provider.dart`
+- Create: `photoquest_app/lib/ui/widgets/theme_mode_tile.dart`
+- Modify: `photoquest_app/lib/main.dart` (susunan dependensi, `MultiProvider`, dan `MaterialApp.themeMode`)
+- Modify: `photoquest_app/lib/ui/screens/profile_screen.dart` (kartu pengaturan, setelah `SwitchListTile` biometrik)
+- Test: `photoquest_app/test/theme_mode_test.dart`
+
+**Interfaces:**
+- Produces:
+  - `ThemeModeProvider({required Future<String?> Function() read, required Future<void> Function(String value) write})`
+  - `static const settingKey = 'theme_mode'`
+  - `ThemeMode get mode`
+  - `Future<void> load()`
+  - `Future<void> setMode(ThemeMode)`
+  - `ThemeModeTile()`, yang membaca `context.watch<ThemeModeProvider?>()` dan mengembalikan `SizedBox.shrink()` jika provider tidak ada.
+
+- [ ] **Step 1: Tulis test yang gagal.** Test ini mencakup provider (default, load, nilai tak dikenal, setMode menyimpan dan memberi tahu listener) dan tile (tap "Gelap" mengubah mode; tanpa provider tile kosong).
+- [ ] **Step 2: Jalankan untuk memastikan gagal.** Run: `flutter test test/theme_mode_test.dart`. Expected: compile error.
+- [ ] **Step 3: Implementasikan provider dan tile, lalu pasang di `main.dart` dan Profil.**
+- [ ] **Step 4: Jalankan test untuk memastikan lulus.** Run: `flutter test test/theme_mode_test.dart`, lalu `flutter analyze`, lalu `flutter test`. Expected: semua lulus, termasuk `profile_test` lama tanpa perubahan.
+- [ ] **Step 5: Saran commit:** `feat(profil): pilihan tema Sistem/Terang/Gelap`
