@@ -47,7 +47,9 @@ Semua layanan di bawah memakai paket gratis. Repo harus sudah di-push ke GitHub.
    `JWT_SECRET` dibuat acak otomatis. `GEMINI_MODEL`, `DEMO_MODE`, dll. sudah terisi
    dan bisa diubah di **Environment**. `GEMINI_FALLBACK_MODELS` berisi model cadangan
    (dipisah koma) yang otomatis dicoba bila model utama sedang sibuk (503) atau lambat;
-   jika layanan sudah dibuat sebelum variabel ini ada, tambahkan manual di **Environment**.
+   variabel bernilai tetap di `render.yaml` ikut tersinkron otomatis saat file itu di-push
+   (layanan dari Blueprint). Hanya jika layanan dibuat manual (bukan dari Blueprint),
+   tambahkan variabel ini sendiri di **Environment**.
 4. **Apply** → tunggu build selesai (±2–4 menit). URL layanan berbentuk
    `https://photoquest-api.onrender.com` (nama bisa berbeda jika sudah dipakai orang lain).
 5. Cek di browser: `https://<url-anda>/health` → harus berisi `"database":"connected"`.
