@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/glass/glass_panel.dart';
+import '../widgets/glass/pq_background.dart';
 import '../widgets/logout_dialog.dart';
 import 'feedback_screen.dart';
 import 'home_tab.dart';
@@ -30,32 +32,48 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(
-        index: _index,
-        children: const [HomeTab(), ProfileScreen(), FeedbackScreen()],
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: _onSelect,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
+    return PqBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: IndexedStack(
+          index: _index,
+          children: const [HomeTab(), ProfileScreen(), FeedbackScreen()],
+        ),
+        // Nav kaca melayang (satu-satunya panel dengan blur).
+        bottomNavigationBar: SafeArea(
+          top: false,
+          minimum: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          child: GlassPanel(
+            blur: true,
+            radius: 28,
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: NavigationBar(
+              selectedIndex: _index,
+              onDestinationSelected: _onSelect,
+              destinations: const [
+                NavigationDestination(
+                  icon: Icon(Icons.home_outlined),
+                  selectedIcon: Icon(Icons.home),
+                  label: 'Home',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.person_outline),
+                  selectedIcon: Icon(Icons.person),
+                  label: 'Profil',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.rate_review_outlined),
+                  selectedIcon: Icon(Icons.rate_review),
+                  label: 'Saran & Kesan',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.logout),
+                  label: 'Logout',
+                ),
+              ],
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profil',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.rate_review_outlined),
-            selectedIcon: Icon(Icons.rate_review),
-            label: 'Saran & Kesan',
-          ),
-          NavigationDestination(icon: Icon(Icons.logout), label: 'Logout'),
-        ],
+        ),
       ),
     );
   }

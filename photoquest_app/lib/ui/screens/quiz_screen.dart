@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/pq_colors.dart';
 import '../../data/local/quiz_dao.dart';
 import '../../data/models/quiz_question.dart';
+import '../widgets/glass/glass_pill.dart';
+import '../widgets/glass/glass_pressable.dart';
+import '../widgets/glass/glass_progress_bar.dart';
+import '../widgets/glass/pq_background.dart';
 import '../widgets/state_views.dart';
 
 /// PhotoQuiz: 10 soal acak dari sqflite (offline), skor akhir, tombol ulangi.
@@ -41,19 +46,22 @@ class _QuizScreenState extends State<QuizScreen> {
   @override
   Widget build(BuildContext context) {
     final s = _session;
-    return Scaffold(
-      appBar: AppBar(title: const Text('PhotoQuiz')),
-      body: _error != null
-          ? Center(
-              child: ErrorView(message: _error!, onRetry: _newRound),
-            )
-          : s == null
-          ? const LoadingView()
-          : s.questions.isEmpty
-          ? const Center(child: EmptyView(message: 'Belum ada soal.'))
-          : s.finished
-          ? _finished(s)
-          : _question(s),
+    return PqBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(title: const Text('PhotoQuiz')),
+        body: _error != null
+            ? Center(
+                child: ErrorView(message: _error!, onRetry: _newRound),
+              )
+            : s == null
+            ? const LoadingView()
+            : s.questions.isEmpty
+            ? const Center(child: EmptyView(message: 'Belum ada soal.'))
+            : s.finished
+            ? _finished(s)
+            : _question(s),
+      ),
     );
   }
 
@@ -63,12 +71,15 @@ class _QuizScreenState extends State<QuizScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text(
-          'Soal ${s.index + 1} dari ${s.questions.length} · Skor ${s.score}',
-          style: theme.textTheme.labelLarge,
+        Align(
+          alignment: Alignment.centerLeft,
+          child: GlassPill(
+            label:
+                'Soal ${s.index + 1} dari ${s.questions.length} · Skor ${s.score}',
+          ),
         ),
         const SizedBox(height: 8),
-        LinearProgressIndicator(value: (s.index + 1) / s.questions.length),
+        GlassProgressBar(value: (s.index + 1) / s.questions.length, height: 8),
         const SizedBox(height: 16),
         Text(q.question, style: theme.textTheme.titleLarge),
         const SizedBox(height: 16),
@@ -89,7 +100,6 @@ class _QuizScreenState extends State<QuizScreen> {
           ),
         if (s.answered) ...[
           Card(
-            color: theme.colorScheme.secondaryContainer,
             child: ListTile(
               leading: Icon(
                 s.selected == q.answerIndex ? Icons.check_circle : Icons.info,
@@ -125,7 +135,7 @@ class _QuizScreenState extends State<QuizScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.emoji_events, size: 80, color: Color(0xFFF9A825)),
+            const Icon(Icons.emoji_events, size: 80, color: PqPalette.gold),
             Text(
               'Skor ${s.score} / $total',
               style: theme.textTheme.headlineMedium,
@@ -156,20 +166,16 @@ class _OptionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (Color? bg, IconData? icon) = switch (state) {
-      _OptionState.correct => (const Color(0xFFC8E6C9), Icons.check),
-      _OptionState.wrong => (const Color(0xFFFFCDD2), Icons.close),
-      _ => (null, null),
+    final (GlassTone tone, IconData? icon) = switch (state) {
+      _OptionState.correct => (GlassTone.green, Icons.check),
+      _OptionState.wrong => (GlassTone.red, Icons.close),
+      _ => (GlassTone.neutral, null),
     };
-    return OutlinedButton(
-      style: OutlinedButton.styleFrom(
-        backgroundColor: bg,
-        alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.all(14),
-        // Saat sudah dijawab tombol tidak aktif, tetapi warnanya tetap terlihat.
-        disabledForegroundColor: Theme.of(context).colorScheme.onSurface,
-      ),
-      onPressed: onTap,
+    // Saat sudah dijawab onTap null: tidak bisa ditekan, warna tetap terlihat.
+    return GlassPressable(
+      tone: tone,
+      onTap: onTap,
+      padding: const EdgeInsets.all(14),
       child: Row(
         children: [
           Expanded(child: Text(text)),

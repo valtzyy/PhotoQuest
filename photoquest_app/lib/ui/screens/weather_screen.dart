@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/formatters.dart';
 import '../../data/models/weather_info.dart';
 import '../../providers/weather_provider.dart';
+import '../widgets/glass/pq_background.dart';
 import '../widgets/state_views.dart';
 import '../widgets/weather_widgets.dart';
 
@@ -30,91 +31,95 @@ class WeatherScreen extends StatelessWidget {
 
     Future<void> refresh() => weather.load(latitude, longitude, force: true);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Cuaca & Golden Hour')),
-      body: Builder(
-        builder: (_) {
-          if (result == null && loading) return const LoadingView();
-          if (result == null) {
-            return Center(
-              child: ErrorView(
-                message: error ?? 'Cuaca belum dimuat',
-                onRetry: refresh,
-              ),
-            );
-          }
-          final info = result.data;
-          final current = info.current;
-          final todayDate = info.dayFor(now)?.date; // tanggal hari ini (WIB)
-          // Prakiraan 24 jam ke depan
-          final next24 = info.hourly
-              .where(
-                (h) =>
-                    h.time.isAfter(now.subtract(const Duration(hours: 1))) &&
-                    h.time.isBefore(now.add(const Duration(hours: 24))),
-              )
-              .toList();
+    return PqBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(title: const Text('Cuaca & Golden Hour')),
+        body: Builder(
+          builder: (_) {
+            if (result == null && loading) return const LoadingView();
+            if (result == null) {
+              return Center(
+                child: ErrorView(
+                  message: error ?? 'Cuaca belum dimuat',
+                  onRetry: refresh,
+                ),
+              );
+            }
+            final info = result.data;
+            final current = info.current;
+            final todayDate = info.dayFor(now)?.date; // tanggal hari ini (WIB)
+            // Prakiraan 24 jam ke depan
+            final next24 = info.hourly
+                .where(
+                  (h) =>
+                      h.time.isAfter(now.subtract(const Duration(hours: 1))) &&
+                      h.time.isBefore(now.add(const Duration(hours: 24))),
+                )
+                .toList();
 
-          return RefreshIndicator(
-            onRefresh: refresh,
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                if (result.fromCache) OfflineBanner(cachedAt: result.cachedAt),
-                if (info.isEstimate)
-                  Card(
-                    color: theme.colorScheme.tertiaryContainer,
-                    child: const ListTile(
-                      leading: Icon(Icons.info_outline),
-                      title: Text('Data cuaca tidak tersedia'),
-                      subtitle: Text(
-                        'Jadwal memakai estimasi: sunrise 05.30 & sunset 17.45 WIB.',
+            return RefreshIndicator(
+              onRefresh: refresh,
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  if (result.fromCache)
+                    OfflineBanner(cachedAt: result.cachedAt),
+                  if (info.isEstimate)
+                    Card(
+                      color: theme.colorScheme.tertiaryContainer,
+                      child: const ListTile(
+                        leading: Icon(Icons.info_outline),
+                        title: Text('Data cuaca tidak tersedia'),
+                        subtitle: Text(
+                          'Jadwal memakai estimasi: sunrise 05.30 & sunset 17.45 WIB.',
+                        ),
                       ),
                     ),
-                  ),
-                Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.thermostat, size: 36),
-                    title: Text(
-                      current == null
-                          ? 'Cuaca saat ini tidak tersedia'
-                          : '${current.temperature.toStringAsFixed(1)}°C · ${current.description}',
+                  Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.thermostat, size: 36),
+                      title: Text(
+                        current == null
+                            ? 'Cuaca saat ini tidak tersedia'
+                            : '${current.temperature.toStringAsFixed(1)}°C · ${current.description}',
+                      ),
+                      subtitle: Text(
+                        current == null
+                            ? 'Diperbarui ${Formatters.dateTime(info.fetchedAt)}'
+                            : 'Tutupan awan ${current.cloudCover}% · '
+                                  'diperbarui ${Formatters.dateTime(info.fetchedAt)}',
+                      ),
+                      trailing: WeatherSourceChip(result: result),
                     ),
-                    subtitle: Text(
-                      current == null
-                          ? 'Diperbarui ${Formatters.dateTime(info.fetchedAt)}'
-                          : 'Tutupan awan ${current.cloudCover}% · '
-                                'diperbarui ${Formatters.dateTime(info.fetchedAt)}',
-                    ),
-                    trailing: WeatherSourceChip(result: result),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Golden hour 7 hari (WIB)',
-                  style: theme.textTheme.titleMedium,
-                ),
-                const SizedBox(height: 4),
-                for (final d in info.days)
-                  _dayTile(context, d, now, isToday: d.date == todayDate),
-                if (next24.isNotEmpty) ...[
                   const SizedBox(height: 16),
-                  Text('24 jam ke depan', style: theme.textTheme.titleMedium),
-                  const SizedBox(height: 4),
-                  SizedBox(
-                    height: 96,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: next24.length,
-                      separatorBuilder: (_, _) => const SizedBox(width: 8),
-                      itemBuilder: (_, i) => _hourTile(context, next24[i]),
-                    ),
+                  Text(
+                    'Golden hour 7 hari (WIB)',
+                    style: theme.textTheme.titleMedium,
                   ),
+                  const SizedBox(height: 4),
+                  for (final d in info.days)
+                    _dayTile(context, d, now, isToday: d.date == todayDate),
+                  if (next24.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Text('24 jam ke depan', style: theme.textTheme.titleMedium),
+                    const SizedBox(height: 4),
+                    SizedBox(
+                      height: 96,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: next24.length,
+                        separatorBuilder: (_, _) => const SizedBox(width: 8),
+                        itemBuilder: (_, i) => _hourTile(context, next24[i]),
+                      ),
+                    ),
+                  ],
                 ],
-              ],
-            ),
-          );
-        },
+              ),
+            );
+          },
+        ),
       ),
     );
   }

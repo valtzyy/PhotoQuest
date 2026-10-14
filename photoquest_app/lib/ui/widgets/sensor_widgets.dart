@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../core/formatters.dart';
+import '../../core/pq_colors.dart';
 import '../../core/sensor_math.dart';
 
-const _levelColor = Color(0xFF2E7D32); // hijau
-const _tiltColor = Color(0xFFEF6C00); // oranye
+const _levelColor = PqPalette.success; // hijau
+const _tiltColor = PqPalette.orange; // oranye
 
 /// Teks status level: "Rata ✓" atau "Miring +X°".
 String levelLabel(double roll) {
@@ -17,8 +18,8 @@ Color levelColor(double roll) => isLevel(roll) ? _levelColor : _tiltColor;
 
 Color stabilityColor(Stability s) => switch (s) {
   Stability.stable => _levelColor,
-  Stability.slightShake => const Color(0xFFF9A825), // kuning
-  Stability.shaky => const Color(0xFFC62828), // merah
+  Stability.slightShake => PqPalette.warning, // kuning
+  Stability.shaky => PqPalette.danger, // merah
 };
 
 /// Waterpas tabung: gelembung bergeser ke sisi HP yang lebih tinggi.

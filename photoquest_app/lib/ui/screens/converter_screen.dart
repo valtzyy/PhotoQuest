@@ -14,6 +14,7 @@ import '../../data/repositories/converter_repository.dart';
 import '../../providers/converter_provider.dart';
 import '../../providers/location_provider.dart';
 import '../../providers/weather_provider.dart';
+import '../widgets/glass/pq_background.dart';
 import '../widgets/spot_picker_sheet.dart';
 import '../widgets/state_views.dart';
 
@@ -28,17 +29,20 @@ class ConverterScreen extends StatelessWidget {
           ConverterProvider(ctx.read<ConverterRepository>())..load(),
       child: DefaultTabController(
         length: 2,
-        child: Scaffold(
-          appBar: AppBar(
-            title: const Text('Konverter'),
-            bottom: const TabBar(
-              tabs: [
-                Tab(icon: Icon(Icons.currency_exchange), text: 'Kurs'),
-                Tab(icon: Icon(Icons.schedule), text: 'Waktu'),
-              ],
+        child: PqBackground(
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            appBar: AppBar(
+              title: const Text('Konverter'),
+              bottom: const TabBar(
+                tabs: [
+                  Tab(icon: Icon(Icons.currency_exchange), text: 'Kurs'),
+                  Tab(icon: Icon(Icons.schedule), text: 'Waktu'),
+                ],
+              ),
             ),
+            body: const TabBarView(children: [_CurrencyTab(), _TimeTab()]),
           ),
-          body: const TabBarView(children: [_CurrencyTab(), _TimeTab()]),
         ),
       ),
     );

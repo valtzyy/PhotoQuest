@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/pq_colors.dart';
 import '../../data/models/user.dart';
 import '../../data/repositories/profile_repository.dart';
 
@@ -59,12 +60,34 @@ class _UserAvatarState extends State<UserAvatar> {
   Widget build(BuildContext context) {
     final name = widget.user?.name.trim() ?? '';
     final initial = name.isEmpty ? '?' : name[0].toUpperCase();
-    return CircleAvatar(
-      radius: widget.radius,
-      backgroundImage: _bytes == null ? null : MemoryImage(_bytes!),
-      child: _bytes == null
-          ? Text(initial, style: TextStyle(fontSize: widget.radius * 0.8))
-          : null,
+    // Cincin kuning kaca dengan bibir 3D; CircleAvatar opak sehingga
+    // bayangan bibir tidak tembus.
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: PqPalette.yellowTone.edge, width: 2.5),
+        boxShadow: [
+          BoxShadow(
+            color: PqPalette.yellowTone.lip,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: CircleAvatar(
+        radius: widget.radius,
+        backgroundColor: const Color(0xFFFFE896),
+        foregroundColor: PqPalette.yellowTone.onColor,
+        backgroundImage: _bytes == null ? null : MemoryImage(_bytes!),
+        child: _bytes == null
+            ? Text(
+                initial,
+                style: TextStyle(
+                  fontSize: widget.radius * 0.8,
+                  fontWeight: FontWeight.w700,
+                ),
+              )
+            : null,
+      ),
     );
   }
 }

@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants.dart';
+import '../../core/pq_colors.dart';
 import '../../data/models/spot.dart';
 import '../../data/remote/ai_api.dart';
 import '../../data/remote/api_exception.dart';
+import '../widgets/glass/pq_background.dart';
 
 /// Photography Assistant (LLM via backend).
 ///
@@ -122,120 +124,123 @@ class _AssistantScreenState extends State<AssistantScreen> {
     final theme = Theme.of(context);
     final chips = _contextChips;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Photography Assistant')),
-      body: Column(
-        children: [
-          if (chips.isNotEmpty)
-            Container(
-              width: double.infinity,
-              color: theme.colorScheme.surfaceContainerHigh,
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Konteks yang dipakai Assistant:',
-                    style: theme.textTheme.labelSmall,
-                  ),
-                  const SizedBox(height: 4),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: [
-                      for (final c in chips)
-                        Chip(
-                          visualDensity: VisualDensity.compact,
-                          avatar: const Icon(Icons.info_outline, size: 16),
-                          label: Text(c),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          Expanded(
-            child: ListView(
-              controller: _scroll,
-              padding: const EdgeInsets.all(12),
-              children: [
-                const _Bubble(
-                  message: ChatMessage(
-                    role: 'assistant',
-                    text:
-                        'Halo! Saya asisten fotografi PhotoQuest. Tanyakan soal komposisi, '
-                        'cahaya, waktu, atau teknik memotret dengan HP maupun kamera.',
-                  ),
-                ),
-                for (final m in _messages) _Bubble(message: m),
-                if (_sending)
-                  const Padding(
-                    padding: EdgeInsets.all(8),
-                    child: Row(
+    return PqBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(title: const Text('Photography Assistant')),
+        body: Column(
+          children: [
+            if (chips.isNotEmpty)
+              Container(
+                width: double.infinity,
+                color: theme.colorScheme.surfaceContainerHigh,
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Konteks yang dipakai Assistant:',
+                      style: theme.textTheme.labelSmall,
+                    ),
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
                       children: [
-                        SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                        SizedBox(width: 8),
-                        Text('Assistant sedang mengetik...'),
+                        for (final c in chips)
+                          Chip(
+                            visualDensity: VisualDensity.compact,
+                            avatar: const Icon(Icons.info_outline, size: 16),
+                            label: Text(c),
+                          ),
                       ],
                     ),
-                  ),
-                if (_failedMessage != null)
-                  Center(
-                    child: TextButton.icon(
-                      onPressed: () => _send(_failedMessage!),
-                      icon: const Icon(Icons.refresh),
-                      label: const Text(
-                        'Assistant sedang tidak tersedia, coba lagi',
-                      ),
-                    ),
-                  ),
-                if (_messages.isEmpty && !_sending)
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final s in _suggestions)
-                        ActionChip(label: Text(s), onPressed: () => _send(s)),
-                    ],
-                  ),
-              ],
-            ),
-          ),
-          SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-              child: Row(
+                  ],
+                ),
+              ),
+            Expanded(
+              child: ListView(
+                controller: _scroll,
+                padding: const EdgeInsets.all(12),
                 children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _input,
-                      minLines: 1,
-                      maxLines: 4,
-                      maxLength: 1000,
-                      textInputAction: TextInputAction.send,
-                      onSubmitted: _send,
-                      decoration: const InputDecoration(
-                        hintText: 'Tanya soal fotografi...',
-                        counterText: '',
-                      ),
+                  const _Bubble(
+                    message: ChatMessage(
+                      role: 'assistant',
+                      text:
+                          'Halo! Saya asisten fotografi PhotoQuest. Tanyakan soal komposisi, '
+                          'cahaya, waktu, atau teknik memotret dengan HP maupun kamera.',
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  IconButton.filled(
-                    tooltip: 'Kirim',
-                    onPressed: _sending ? null : () => _send(_input.text),
-                    icon: const Icon(Icons.send),
-                  ),
+                  for (final m in _messages) _Bubble(message: m),
+                  if (_sending)
+                    const Padding(
+                      padding: EdgeInsets.all(8),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          SizedBox(width: 8),
+                          Text('Assistant sedang mengetik...'),
+                        ],
+                      ),
+                    ),
+                  if (_failedMessage != null)
+                    Center(
+                      child: TextButton.icon(
+                        onPressed: () => _send(_failedMessage!),
+                        icon: const Icon(Icons.refresh),
+                        label: const Text(
+                          'Assistant sedang tidak tersedia, coba lagi',
+                        ),
+                      ),
+                    ),
+                  if (_messages.isEmpty && !_sending)
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final s in _suggestions)
+                          ActionChip(label: Text(s), onPressed: () => _send(s)),
+                      ],
+                    ),
                 ],
               ),
             ),
-          ),
-        ],
+            SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _input,
+                        minLines: 1,
+                        maxLines: 4,
+                        maxLength: 1000,
+                        textInputAction: TextInputAction.send,
+                        onSubmitted: _send,
+                        decoration: const InputDecoration(
+                          hintText: 'Tanya soal fotografi...',
+                          counterText: '',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton.filled(
+                      tooltip: 'Kirim',
+                      onPressed: _sending ? null : () => _send(_input.text),
+                      icon: const Icon(Icons.send),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -262,6 +267,7 @@ class _Bubble extends StatelessWidget {
               ? scheme.primaryContainer
               : scheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: PqColors.of(context).panelEdge),
         ),
         child: SelectableText(message.text),
       ),

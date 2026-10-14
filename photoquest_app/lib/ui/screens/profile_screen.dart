@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/formatters.dart';
+import '../../core/pq_colors.dart';
 import '../../data/models/challenge_attempt.dart';
 import '../../data/remote/api_exception.dart';
 import '../../data/repositories/cached_result.dart';
@@ -10,6 +11,7 @@ import '../../data/repositories/profile_repository.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/notification_service.dart';
 import '../widgets/state_views.dart';
+import '../widgets/theme_mode_tile.dart';
 import '../widgets/user_avatar.dart';
 
 /// Tab Profil: foto profil, nama, email, toggle biometrik, riwayat challenge.
@@ -143,6 +145,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(title: const Text('Profil')),
       body: RefreshIndicator(
         onRefresh: _loadHistory,
@@ -198,6 +201,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     value: auth.biometricEnabled,
                     onChanged: _toggleBiometric,
                   ),
+                  const ThemeModeTile(),
                   ListTile(
                     leading: const Icon(Icons.notifications_active_outlined),
                     title: const Text('Uji Notifikasi (10 detik)'),
@@ -242,7 +246,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               leading: Icon(
                 a.success ? Icons.check_circle : Icons.cancel,
                 color: a.success
-                    ? Colors.green
+                    ? PqPalette.success
                     : Theme.of(context).colorScheme.error,
               ),
               title: Text(a.success ? 'Berhasil' : 'Gagal'),

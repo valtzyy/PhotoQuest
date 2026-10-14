@@ -84,6 +84,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(title: const Text('Saran & Kesan')),
       body: RefreshIndicator(
         onRefresh: _load,
