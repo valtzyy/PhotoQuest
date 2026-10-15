@@ -28,6 +28,19 @@ router.post('/', async (req, res) => {
   return ok(res, rows[0], 'Terima kasih atas saran dan kesannya', 201);
 });
 
+// GET /feedback -> saran & kesan dari SEMUA pengguna (terbaru dulu).
+// Hanya nama penulis yang dikirim; email dan data lain tidak pernah ikut.
+router.get('/', async (req, res) => {
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 100);
+  const { rows } = await db.query(
+    `SELECT f.id, f.saran, f.kesan, f.created_at, u.name, (f.user_id = $1) AS mine
+     FROM feedback f JOIN users u ON u.id = f.user_id
+     ORDER BY f.created_at DESC, f.id DESC LIMIT $2`,
+    [req.user.id, limit]
+  );
+  return ok(res, rows);
+});
+
 // GET /feedback/me -> feedback yang pernah dikirim user ini (terbaru dulu)
 router.get('/me', async (req, res) => {
   const { rows } = await db.query(

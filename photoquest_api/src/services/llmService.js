@@ -90,6 +90,7 @@ async function generateText({
   temperature = 0.6,
   http = axios,
   budgetMs = config.llmTotalTimeoutMs,
+  attemptMs = config.externalTimeoutMs, // batas per percobaan model
   now = Date.now,
 }) {
   const provider = providers[config.llmProvider];
@@ -109,7 +110,7 @@ async function generateText({
     try {
       const text = await provider({
         system, messages, json, temperature, http, model,
-        timeout: Math.min(config.externalTimeoutMs, remaining),
+        timeout: Math.min(attemptMs, remaining),
       });
       if (i > 0) console.info(`[llm] dijawab oleh model cadangan ${model}`);
       return text;

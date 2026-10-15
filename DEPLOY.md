@@ -31,6 +31,15 @@ Semua layanan di bawah memakai paket gratis. Repo harus sudah di-push ke GitHub.
    Output yang benar: `Jumlah data: { users: '1', spots: '18', gear_items: '8' }`.
    (Variabel lingkungan menimpa nilai di `.env`, jadi `.env` lokal tidak perlu diubah.)
 
+> Database Neon yang **sudah berisi data** dan perlu foto spot (kolom `image_credit` + URL foto)?
+> Jangan `db:init`. Cukup (PowerShell, dari `photoquest_api`):
+> ```powershell
+> $env:DATABASE_URL="postgresql://...neon.tech/neondb?sslmode=verify-full"
+> npm run db:images
+> Remove-Item Env:DATABASE_URL
+> ```
+> Skrip ini hanya menambah kolom dan mengisi foto; data lain tidak disentuh.
+
 > ⚠️ `npm run db:init` **menghapus semua tabel** lalu membuat ulang. Jangan dijalankan lagi
 > setelah ada data yang ingin disimpan.
 

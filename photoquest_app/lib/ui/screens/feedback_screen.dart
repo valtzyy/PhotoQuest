@@ -45,7 +45,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       _error = null;
     });
     try {
-      final result = await context.read<FeedbackRepository>().getMine();
+      final result = await context.read<FeedbackRepository>().getAll();
       if (mounted) setState(() => _result = result);
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
@@ -142,7 +142,10 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            Text('Yang sudah dikirim', style: theme.textTheme.titleMedium),
+            Text(
+              'Saran & kesan dari semua pengguna',
+              style: theme.textTheme.titleMedium,
+            ),
             const SizedBox(height: 8),
             _buildList(),
           ],
@@ -156,7 +159,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     if (_error != null) return ErrorView(message: _error!, onRetry: _load);
     final result = _result!;
     if (result.data.isEmpty) {
-      return const EmptyView(message: 'Belum ada saran & kesan yang dikirim.');
+      return const EmptyView(
+        message: 'Belum ada saran & kesan. Jadilah yang pertama!',
+      );
     }
     return Column(
       children: [
@@ -168,6 +173,26 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          item.authorName ?? 'Pengguna',
+                          style: Theme.of(context).textTheme.titleSmall,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (item.mine)
+                        const Padding(
+                          padding: EdgeInsets.only(left: 8),
+                          child: Chip(
+                            label: Text('Anda'),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ),
+                    ],
+                  ),
                   Text(
                     Formatters.dateTime(item.createdAt),
                     style: Theme.of(context).textTheme.labelSmall,

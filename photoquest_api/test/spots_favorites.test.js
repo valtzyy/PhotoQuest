@@ -35,6 +35,14 @@ test('GET /spots tanpa filter -> semua spot seed, photo_types berupa array', asy
   assert.strictEqual(typeof body.data[0].latitude, 'number');
 });
 
+test('Setiap spot punya foto asli (image_url https) beserta image_credit', async () => {
+  const { body } = await getJson('/spots');
+  for (const spot of body.data) {
+    assert.match(spot.image_url, /^https:\/\/commons\.wikimedia\.org\//, spot.name);
+    assert.match(spot.image_credit, /Wikimedia Commons/, spot.name);
+  }
+});
+
 test('Search tidak peka huruf besar/kecil, mencari di nama & deskripsi', async () => {
   const byName = await getJson('/spots?search=PRAMBANAN');
   assert.ok(byName.body.data.some((s) => s.name === 'Candi Prambanan'));

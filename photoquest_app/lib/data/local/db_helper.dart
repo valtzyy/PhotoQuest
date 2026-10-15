@@ -11,7 +11,7 @@ class DbHelper {
   static final DbHelper instance = DbHelper._();
 
   static const _dbName = 'photoquest.db';
-  static const _dbVersion = 1;
+  static const _dbVersion = 2;
 
   Database? _db;
 
@@ -21,7 +21,16 @@ class DbHelper {
       join(await getDatabasesPath(), _dbName),
       version: _dbVersion,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
+  }
+
+  /// v1 -> v2: kolom atribusi foto. Cache spot lama dikosongkan agar terisi ulang dari server.
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE spots_cache ADD COLUMN image_credit TEXT');
+      await db.delete('spots_cache');
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -38,6 +47,7 @@ class DbHelper {
         photo_types TEXT NOT NULL,
         tips TEXT,
         image_url TEXT,
+        image_credit TEXT,
         entry_fee_idr INTEGER,
         cached_at TEXT NOT NULL
       )''');

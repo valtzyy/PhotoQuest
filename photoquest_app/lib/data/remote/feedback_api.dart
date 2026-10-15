@@ -13,7 +13,8 @@ class FeedbackApi {
     return FeedbackItem.fromJson(data);
   }
 
+  /// Saran & kesan dari semua pengguna (terbaru dulu).
   /// Mengembalikan JSON mentah agar bisa langsung disimpan ke cache.
-  Future<List<dynamic>> mineRaw() =>
-      _client.send<List<dynamic>>((dio) => dio.get('/feedback/me'));
+  Future<List<dynamic>> allRaw() =>
+      _client.send<List<dynamic>>((dio) => dio.get('/feedback'));
 }

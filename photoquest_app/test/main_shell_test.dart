@@ -49,7 +49,7 @@ class _FakeFeedbackRepo extends FeedbackRepository {
     : super(FeedbackApi(_client), JsonCache(DbHelper.instance));
 
   @override
-  Future<CachedResult<List<FeedbackItem>>> getMine() async =>
+  Future<CachedResult<List<FeedbackItem>>> getAll() async =>
       const CachedResult(<FeedbackItem>[]);
 }
 

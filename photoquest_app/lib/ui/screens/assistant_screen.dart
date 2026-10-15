@@ -32,7 +32,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
 
   static const _suggestions = [
     'Tips komposisi untuk spot ini?',
-    'Setting kamera HP saat golden hour?',
+    'Saran spot dan angle foto di pantai Jogja?',
     'Bagaimana memotret siluet saat sunset?',
   ];
 
@@ -167,8 +167,9 @@ class _AssistantScreenState extends State<AssistantScreen> {
                     message: ChatMessage(
                       role: 'assistant',
                       text:
-                          'Halo! Saya asisten fotografi PhotoQuest. Tanyakan soal komposisi, '
-                          'cahaya, waktu, atau teknik memotret dengan HP maupun kamera.',
+                          'Halo! Saya asisten PhotoQuest. Tanyakan saran spot dan angle foto, '
+                          'komposisi, cahaya, atau teknik memotret, atau ngobrol santai saja. '
+                          'You can also chat in English.',
                     ),
                   ),
                   for (final m in _messages) _Bubble(message: m),
@@ -224,7 +225,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                         textInputAction: TextInputAction.send,
                         onSubmitted: _send,
                         decoration: const InputDecoration(
-                          hintText: 'Tanya soal fotografi...',
+                          hintText: 'Tanya atau ngobrol...',
                           counterText: '',
                         ),
                       ),

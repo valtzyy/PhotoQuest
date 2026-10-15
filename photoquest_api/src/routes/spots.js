@@ -9,7 +9,7 @@ const router = express.Router();
 
 const CATEGORIES = ['landscape', 'architecture', 'street', 'nature', 'culture'];
 const SPOT_COLUMNS = `id, name, category, description, latitude, longitude, best_time,
-  photo_types, tips, image_url, entry_fee_idr`;
+  photo_types, tips, image_url, image_credit, entry_fee_idr`;
 
 router.use(requireAuth);
 

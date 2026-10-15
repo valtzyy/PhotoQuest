@@ -13,6 +13,7 @@ class Spot {
     required this.photoTypes,
     this.tips,
     this.imageUrl,
+    this.imageCredit,
     this.entryFeeIdr,
   });
 
@@ -26,6 +27,9 @@ class Spot {
   final List<String> photoTypes;
   final String? tips;
   final String? imageUrl;
+
+  /// Atribusi foto (pembuat + lisensi), wajib ditampilkan untuk lisensi CC BY-SA.
+  final String? imageCredit;
   final int? entryFeeIdr;
 
   /// Dari respons API (photo_types berupa array JSON).
@@ -40,6 +44,7 @@ class Spot {
     photoTypes: List<String>.from(json['photo_types'] as List),
     tips: json['tips'] as String?,
     imageUrl: json['image_url'] as String?,
+    imageCredit: json['image_credit'] as String?,
     entryFeeIdr: json['entry_fee_idr'] as int?,
   );
 
@@ -57,6 +62,7 @@ class Spot {
     ),
     tips: row['tips'] as String?,
     imageUrl: row['image_url'] as String?,
+    imageCredit: row['image_credit'] as String?,
     entryFeeIdr: row['entry_fee_idr'] as int?,
   );
 
@@ -71,6 +77,7 @@ class Spot {
     'photo_types': jsonEncode(photoTypes),
     'tips': tips,
     'image_url': imageUrl,
+    'image_credit': imageCredit,
     'entry_fee_idr': entryFeeIdr,
     'cached_at': cachedAt.toIso8601String(),
   };

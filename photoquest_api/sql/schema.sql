@@ -43,7 +43,8 @@ CREATE TABLE spots (
   -- jenis foto yang cocok: landscape | sunset | street | architecture | portrait
   photo_types   TEXT[]       NOT NULL DEFAULT '{}',
   tips          TEXT,
-  image_url     TEXT,
+  image_url     TEXT,                       -- foto asli (Wikimedia Commons)
+  image_credit  TEXT,                       -- atribusi: pembuat foto + lisensi
   entry_fee_idr INT
 );
 

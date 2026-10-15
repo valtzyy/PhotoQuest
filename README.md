@@ -26,6 +26,7 @@ cp .env.example .env      # isi DATABASE_URL, JWT_SECRET, (opsional) GEMINI_API_
 npm run db:init           # buat tabel + data seed (MENGHAPUS data lama)
 npm run dev               # server di port 3000, auto-restart saat file berubah
 npm run llm:check         # (opsional) cek API key & model Gemini
+npm run db:images         # (opsional) isi/perbarui foto spot di DB yang sudah ada tanpa menghapus data
 ```
 Cek: `http://localhost:3000/health`. Akun demo hasil seed: `demo@photoquest.app` / `demo123`.
 
@@ -92,7 +93,8 @@ Format respons seragam: `{ success, data, message }`. Semua endpoint membutuhkan
 | POST | `/chain/tamper-demo`, `/chain/repair-demo` | Demo manipulasi (hanya `DEMO_MODE=true`) |
 | GET | `/currency?base=IDR` | Kurs (cache 6 jam, fallback kurs tetap) |
 | GET | `/gear` | Daftar gear fotografi |
-| POST | `/feedback`, GET `/feedback/me` | Saran & Kesan mata kuliah |
+| GET/POST | `/feedback` | Saran & Kesan dari semua pengguna (hanya nama penulis) / kirim baru |
+| GET | `/feedback/me` | Saran & Kesan milik sendiri |
 
 ## Pengujian otomatis
 ```bash
@@ -126,6 +128,8 @@ Tes backend memakai database di `DATABASE_URL` (user uji dibuat lalu dihapus oto
 | Explore | Chip filter "Favorit" | Tempat melihat daftar favorit |
 | Status biometrik | Disimpan di secure storage (bukan sqflite) | Data keamanan |
 | Golden hour | sunrise/sunset ± 60 menit | Penyederhanaan sesuai spesifikasi |
+| Foto spot | Foto asli dari Wikimedia Commons (CC BY-SA), atribusi di `spots.image_credit` | Atribusi wajib untuk lisensi CC BY-SA; placeholder dipakai bila gagal dimuat |
+| Asisten chat | Prompt longgar: boleh ngobrol santai, balas dalam bahasa pengguna | Masukan penguji: asisten terlalu kaku dan menolak bahasa Inggris |
 
 Koordinat spot (`-- TO_VERIFY` di `photoquest_api/sql/seed.sql`), harga tiket, dan harga gear
 adalah **perkiraan** dan perlu dicek manual.

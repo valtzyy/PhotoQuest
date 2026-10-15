@@ -11,11 +11,12 @@ class FeedbackRepository {
 
   final FeedbackApi _api;
   final JsonCache _cache;
-  static const _cacheName = 'feedback_me';
+  static const _cacheName = 'feedback_all';
 
-  Future<CachedResult<List<FeedbackItem>>> getMine() async {
+  /// Daftar saran & kesan dari semua pengguna.
+  Future<CachedResult<List<FeedbackItem>>> getAll() async {
     try {
-      final raw = await _api.mineRaw();
+      final raw = await _api.allRaw();
       await _cache.save(_cacheName, raw); // 1. server -> 2. cache lokal
       return CachedResult(_parse(raw)); // 3. tampilkan
     } on ApiException catch (e) {

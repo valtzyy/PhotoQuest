@@ -95,6 +95,19 @@ test('Kirim & ambil Saran dan Kesan', async () => {
   assert.strictEqual(list.data[0].kesan, 'Seru');
 });
 
+test('GET /feedback -> daftar semua pengguna, hanya nama (tanpa email)', async () => {
+  const body = await (await fetch(`${baseUrl}/feedback`, { headers: auth })).json();
+  assert.ok(body.data.length >= 1);
+  const row = body.data.find((f) => f.kesan === 'Seru');
+  assert.ok(row, 'feedback milik sendiri harus ikut tampil');
+  assert.strictEqual(row.mine, true);
+  assert.ok(row.name);
+  assert.strictEqual(row.email, undefined);
+  assert.strictEqual(row.user_id, undefined);
+  const noToken = await fetch(`${baseUrl}/feedback`);
+  assert.strictEqual(noToken.status, 401);
+});
+
 test('Feedback kosong ditolak -> 400', async () => {
   const res = await fetch(`${baseUrl}/feedback`, {
     method: 'POST',

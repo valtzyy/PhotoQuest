@@ -4,6 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const { pool } = require('../src/db');
+const { applySpotImages } = require('./setSpotImages');
 
 async function run() {
   const sqlDir = path.join(__dirname, '..', 'sql');
@@ -13,6 +14,9 @@ async function run() {
     await pool.query(sql);
     console.log('selesai');
   }
+  process.stdout.write('Mengisi foto spot ... ');
+  await applySpotImages(pool);
+  console.log('selesai');
   const { rows } = await pool.query(
     `SELECT (SELECT COUNT(*) FROM users)      AS users,
             (SELECT COUNT(*) FROM spots)      AS spots,

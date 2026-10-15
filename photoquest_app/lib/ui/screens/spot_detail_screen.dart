@@ -7,7 +7,7 @@ import '../../core/pq_colors.dart';
 import '../../data/models/spot.dart';
 import '../../providers/spot_provider.dart';
 import '../widgets/glass/pq_background.dart';
-import '../widgets/spot_placeholder.dart';
+import '../widgets/spot_image.dart';
 import 'assistant_screen.dart';
 import 'plan_screen.dart';
 
@@ -85,9 +85,21 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                background: SpotPlaceholder(
-                  category: _spot.category,
-                  iconSize: 72,
+                background: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    SpotImage(spot: _spot, iconSize: 72),
+                    // Gradien gelap di bawah agar judul tetap terbaca di atas foto.
+                    const DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.center,
+                          end: Alignment.bottomCenter,
+                          colors: [Colors.transparent, Colors.black54],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               actions: [
@@ -183,6 +195,13 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                     icon: const Icon(Icons.chat_bubble_outline),
                     label: const Text('Tanya Assistant'),
                   ),
+                  if (_spot.imageCredit != null) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      'Foto: ${_spot.imageCredit}',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
                 ],
               ),
             ),

@@ -13,7 +13,7 @@ router.use(requireAuth);
 router.get('/', async (req, res) => {
   const { rows } = await db.query(
     `SELECT s.id, s.name, s.category, s.description, s.latitude, s.longitude, s.best_time,
-            s.photo_types, s.tips, s.image_url, s.entry_fee_idr, f.created_at AS favorited_at
+            s.photo_types, s.tips, s.image_url, s.image_credit, s.entry_fee_idr, f.created_at AS favorited_at
      FROM favorites f
      JOIN spots s ON s.id = f.spot_id
      WHERE f.user_id = $1

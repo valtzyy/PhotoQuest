@@ -133,6 +133,8 @@ router.post('/score', async (req, res) => {
 
 // ------------------------------------------------------------------ chat
 
+const CHAT_ATTEMPT_MS = 12000;
+const CHAT_BUDGET_MS = 18000;
 const MAX_MESSAGE = 1000;
 const MAX_HISTORY = 10;
 const CONTEXT_KEYS = ['photo_type', 'planned_at', 'score', 'label', 'weather', 'golden_hour'];
@@ -148,27 +150,36 @@ function sanitizeContext(context) {
   return clean;
 }
 
-function buildSystemPrompt(spot, ctx) {
+function buildSystemPrompt(spot, ctx, catalog = []) {
+  // Instruksi ditulis netral (Inggris) agar model tidak terpancing membalas selalu dalam bahasa Indonesia.
   const lines = [
-    'Kamu adalah "PhotoQuest Assistant", asisten fotografi berbahasa Indonesia untuk fotografer pemula.',
-    'Aturan:',
-    '- Jawab singkat dan praktis (maksimal 6 kalimat atau 5 poin).',
-    '- Fokus pada komposisi, cahaya, waktu pemotretan, dan teknik memotret dengan HP maupun kamera.',
-    '- Jika pertanyaan di luar fotografi, tolak dengan sopan dan arahkan kembali ke fotografi.',
-    '- Gunakan data konteks di bawah bila relevan; jangan mengarang data cuaca/skor yang tidak diberikan.',
+    'You are "PhotoQuest Assistant", a friendly photography guide and chat companion inside the PhotoQuest app.',
+    'Rules:',
+    '- LANGUAGE: always reply in the same language as the latest user message (English -> English, Indonesian -> Indonesian, etc.). Never mix languages, never ask the user to switch language, and never refuse because of the language.',
+    '- Style: warm, casual, practical. Usually 3-8 sentences or up to 6 bullet points; go longer only if the user asks for detail.',
+    '- Main expertise: photography (composition, angles, light, golden hour, phone/camera technique) and photo spots, especially in Yogyakarta, Indonesia.',
+    '- If asked for spot or angle suggestions for any kind of place (beach, temple, old town, ...), answer directly and concretely: spot name, where to stand / which angle, best time, and a tip. Prefer spots from the app list below when they fit, but you may suggest other places you know.',
+    '- Users may chat casually or ask general questions (travel, food nearby, gear, content ideas). Answer briefly and helpfully, then tie back to photography when it fits. Refuse only dangerous or illegal requests.',
+    '- Do not invent facts you are unsure about (addresses, prices, opening hours, weather, scores). If unsure, say so and suggest checking.',
   ];
+  if (catalog.length) {
+    lines.push('', 'Spots available in the app:');
+    for (const c of catalog) {
+      lines.push(`- ${c.name} (${c.category}, best time: ${c.best_time})`);
+    }
+  }
   if (spot) {
     lines.push(
       '',
-      'Konteks spot:',
-      `- Nama: ${spot.name} (kategori ${spot.category})`,
-      `- Deskripsi: ${spot.description}`,
-      `- Waktu terbaik: ${spot.best_time}; cocok untuk: ${spot.photo_types.join(', ')}`,
+      'Spot context:',
+      `- Name: ${spot.name} (category ${spot.category})`,
+      `- Description: ${spot.description}`,
+      `- Best time: ${spot.best_time}; suitable for: ${spot.photo_types.join(', ')}`,
       `- Tips: ${spot.tips || '-'}`
     );
   }
   const ctxLines = Object.entries(ctx).map(([k, v]) => `- ${k}: ${v}`);
-  if (ctxLines.length) lines.push('', 'Konteks rencana pemotretan:', ...ctxLines);
+  if (ctxLines.length) lines.push('', 'Photo plan context:', ...ctxLines);
   return lines.join('\n');
 }
 
@@ -193,11 +204,18 @@ router.post('/chat', async (req, res) => {
         .map((m) => ({ role: m.role, text: m.text.slice(0, 2000) }))
     : [];
 
+  // Daftar singkat spot agar asisten bisa menyarankan spot yang ada di aplikasi.
+  const catalog = (await db.query('SELECT name, category, best_time FROM spots ORDER BY name')).rows;
+
   try {
     const reply = await generateText({
-      system: buildSystemPrompt(spot, sanitizeContext(context)),
+      system: buildSystemPrompt(spot, sanitizeContext(context), catalog),
       messages: [...past, { role: 'user', text: message.trim() }],
       temperature: 0.7,
+      // Jawaban chat lebih panjang dari rekomendasi: beri waktu lebih lega
+      // (aplikasi menunggu sampai 20 detik).
+      attemptMs: CHAT_ATTEMPT_MS,
+      budgetMs: CHAT_BUDGET_MS,
     });
     return ok(res, { reply });
   } catch (err) {

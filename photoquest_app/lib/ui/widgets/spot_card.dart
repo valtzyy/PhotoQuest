@@ -5,7 +5,7 @@ import '../../core/formatters.dart';
 import '../../core/pq_colors.dart';
 import '../../data/models/spot.dart';
 import 'glass/holo_card_frame.dart';
-import 'spot_placeholder.dart';
+import 'spot_image.dart';
 
 /// Kartu spot di daftar Explore: gambar/placeholder, nama, kategori, jarak (jika ada).
 class SpotCard extends StatelessWidget {
@@ -38,7 +38,7 @@ class SpotCard extends StatelessWidget {
             child: SizedBox(
               width: 84,
               height: 84,
-              child: SpotPlaceholder(category: spot.category, iconSize: 36),
+              child: SpotImage(spot: spot, iconSize: 36),
             ),
           ),
           const SizedBox(width: 12),
