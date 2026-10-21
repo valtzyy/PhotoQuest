@@ -66,9 +66,7 @@ void main() {
   });
 
   testWidgets('SpotImage memakai placeholder bila belum ada URL', (t) async {
-    await t.pumpWidget(
-      MaterialApp(home: SpotImage(spot: _spot())),
-    );
+    await t.pumpWidget(MaterialApp(home: SpotImage(spot: _spot())));
     expect(find.byType(SpotPlaceholder), findsOneWidget);
     expect(find.byType(Image), findsNothing);
   });
@@ -77,11 +75,34 @@ void main() {
     t,
   ) async {
     await t.pumpWidget(
-      MaterialApp(home: SpotImage(spot: _spot(imageUrl: 'https://x.test/a.jpg'))),
+      MaterialApp(
+        home: SpotImage(spot: _spot(imageUrl: 'https://x.test/a.jpg')),
+      ),
     );
     expect(find.byType(Image), findsOneWidget);
     // Di lingkungan tes request jaringan gagal -> errorBuilder menampilkan placeholder.
-    await t.pump(const Duration(seconds: 1));
+    await t.pump(const Duration(milliseconds: 100));
     expect(find.byType(SpotPlaceholder), findsOneWidget);
+    await t.pumpWidget(
+      const SizedBox(),
+    ); // lepas widget (membatalkan timer retry)
+  });
+
+  testWidgets('SpotImage mencoba memuat ulang sendiri setelah gagal', (
+    t,
+  ) async {
+    await t.pumpWidget(
+      MaterialApp(
+        home: SpotImage(spot: _spot(imageUrl: 'https://x.test/a.jpg')),
+      ),
+    );
+    await t.pump(const Duration(milliseconds: 100));
+    Key? imageKey() => t.widget<Image>(find.byType(Image)).key;
+    expect(imageKey(), const ValueKey('https://x.test/a.jpg#0'));
+
+    // Jeda pertama 2 detik: Image dibangun ulang dengan kunci baru (percobaan ke-1).
+    await t.pump(SpotImage.retryBaseDelay + const Duration(milliseconds: 50));
+    expect(imageKey(), const ValueKey('https://x.test/a.jpg#1'));
+    await t.pumpWidget(const SizedBox());
   });
 }
