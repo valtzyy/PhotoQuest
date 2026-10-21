@@ -70,9 +70,10 @@ class WeatherScreen extends StatelessWidget {
                       color: theme.colorScheme.tertiaryContainer,
                       child: const ListTile(
                         leading: Icon(Icons.info_outline),
-                        title: Text('Data cuaca tidak tersedia'),
+                        title: Text('Data cuaca belum tersedia'),
                         subtitle: Text(
-                          'Jadwal memakai estimasi: sunrise 05.30 & sunset 17.45 WIB.',
+                          'Sunrise & sunset dihitung dari lokasi spot. '
+                          'Tarik layar ke bawah untuk mencoba lagi.',
                         ),
                       ),
                     ),

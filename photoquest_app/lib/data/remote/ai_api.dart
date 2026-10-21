@@ -33,6 +33,9 @@ class AiApi {
     required DateTime plannedAt,
     int? cloudCover,
     int? rainProb,
+    // true: cloudCover/rainProb berasal dari prakiraan Open-Meteo yang diambil HP
+    // (bukan pilihan manual), dipakai saat backend tak bisa mengambil prakiraan.
+    bool fromForecast = false,
   }) async {
     final data = await _client.send<Map<String, dynamic>>(
       (dio) => dio.post(
@@ -43,6 +46,7 @@ class AiApi {
           'planned_at': plannedAt.toUtc().toIso8601String(),
           'cloud_cover': ?cloudCover,
           'rain_prob': ?rainProb,
+          if (fromForecast) 'from_forecast': true,
         },
         options: _aiOptions,
       ),

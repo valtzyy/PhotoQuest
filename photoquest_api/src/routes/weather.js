@@ -18,7 +18,7 @@ router.get('/', requireAuth, async (req, res) => {
 
   const data = await weatherService.getWeather(lat, lng);
   const message = data.is_estimate
-    ? 'Data cuaca tidak tersedia, memakai estimasi'
+    ? 'Data cuaca tidak tersedia, jam matahari dihitung dari lokasi'
     : 'OK';
   return ok(res, data, message);
 });

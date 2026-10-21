@@ -57,15 +57,28 @@ describe('fromOpenMeteo & golden hour', () => {
   });
 });
 
-test('Estimasi: sunrise 05:30 & sunset 17:45 WIB, ditandai is_estimate', () => {
+test('Estimasi: jam matahari dihitung dari koordinat (bukan angka tetap), ditandai is_estimate', () => {
   // 20:00 UTC = 03:00 WIB tanggal berikutnya -> tanggal harus mengikuti WIB
-  const e = estimate(new Date('2026-10-04T20:00:00Z'));
+  const e = estimate(new Date('2026-10-04T20:00:00Z'), -7.797, 110.37);
   assert.strictEqual(e.source, 'estimate');
   assert.strictEqual(e.is_estimate, true);
   assert.strictEqual(e.days[0].date, '2026-10-05');
-  assert.strictEqual(e.days[0].sunrise, '2026-10-05T05:30:00+07:00');
-  assert.strictEqual(e.days[0].golden_evening.start, '2026-10-05T16:45:00+07:00');
   assert.strictEqual(e.days.length, 7);
+  assert.strictEqual(e.current, null);
+  assert.deepStrictEqual(e.hourly, []);
+
+  // Yogyakarta awal Oktober: sunrise ±05:2x, sunset ±17:3x WIB (bukan 05:30 / 17:45 tetap)
+  const d = e.days[0];
+  assert.match(d.sunrise, /^2026-10-05T05:[0-3]\d:\d\d\+07:00$/);
+  assert.match(d.sunset, /^2026-10-05T17:[2-4]\d:\d\d\+07:00$/);
+  assert.notStrictEqual(d.sunrise, '2026-10-05T05:30:00+07:00');
+  assert.strictEqual(d.golden_evening.end, d.sunset);
+  assert.strictEqual(d.golden_morning.start, d.sunrise);
+});
+
+test('Estimasi tanpa koordinat memakai Yogyakarta sebagai default', () => {
+  const e = estimate(new Date('2026-10-04T08:00:00Z'));
+  assert.strictEqual(e.days[0].sunrise, estimate(new Date('2026-10-04T08:00:00Z'), -7.797, 110.37).days[0].sunrise);
 });
 
 describe('getWeather: cache 30 menit & fallback', () => {
@@ -121,6 +134,7 @@ describe('getWeather: cache 30 menit & fallback', () => {
     const r = await t.svc.getWeather(-7.78, 110.36);
     assert.strictEqual(r.source, 'estimate');
     assert.strictEqual(r.is_estimate, true);
+    assert.strictEqual(r.days.length, 7);
   });
 });
 

@@ -4,9 +4,10 @@
 //   1. Cache memori < 30 menit           -> source "cache"
 //   2. Panggil Open-Meteo (timeout 8 dtk) -> source "live"
 //   3. Gagal -> cache lama (berapa pun umurnya) -> source "cache"
-//   4. Tidak ada cache -> estimasi sunrise 05:30 / sunset 17:45 WIB -> source "estimate"
+//   4. Tidak ada cache -> jam matahari dihitung dari koordinat, tanpa data cuaca -> source "estimate"
 const axios = require('axios');
 const config = require('../config');
+const { sunTimes } = require('./solarService');
 
 const OPEN_METEO_URL = 'https://api.open-meteo.com/v1/forecast';
 const TIMEZONE = 'Asia/Jakarta';
@@ -14,6 +15,8 @@ const WIB_OFFSET_SECONDS = 7 * 3600;
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 menit
 const GOLDEN_HOUR_MS = 60 * 60 * 1000; // 60 menit
 const FORECAST_DAYS = 7;
+const DEFAULT_LAT = -7.797; // Yogyakarta
+const DEFAULT_LNG = 110.37;
 
 // Deskripsi kode cuaca WMO yang dipakai Open-Meteo.
 function describeWeatherCode(code) {
@@ -109,15 +112,24 @@ function fromOpenMeteo(raw, now = new Date()) {
   };
 }
 
-// Estimasi jika API gagal dan belum ada cache: sunrise 05:30, sunset 17:45 WIB.
-function estimate(now = new Date()) {
+const roundToMinute = (date) => new Date(Math.round(date.getTime() / 60000) * 60000);
+
+// Cadangan jika API gagal dan belum ada cache: jam matahari dihitung dari koordinat
+// (solarService), jadi golden hour tetap akurat; hanya cuaca (suhu/awan) yang kosong.
+// Tanpa koordinat dipakai Yogyakarta.
+function estimate(now = new Date(), lat = DEFAULT_LAT, lng = DEFAULT_LNG) {
   const days = [];
   for (let i = 0; i < FORECAST_DAYS; i++) {
     // Tanggal kalender WIB untuk hari ke-i
     const wib = new Date(now.getTime() + WIB_OFFSET_SECONDS * 1000 + i * 86400000);
     const date = wib.toISOString().slice(0, 10);
-    const sunrise = `${date}T05:30:00+07:00`;
-    const sunset = `${date}T17:45:00+07:00`;
+    const [y, m, d] = date.split('-').map(Number);
+    const sun = sunTimes(y, m, d, lat, lng) ?? {
+      sunrise: new Date(`${date}T05:30:00+07:00`),
+      sunset: new Date(`${date}T17:45:00+07:00`),
+    };
+    const sunrise = toOffsetIso(roundToMinute(sun.sunrise), WIB_OFFSET_SECONDS);
+    const sunset = toOffsetIso(roundToMinute(sun.sunset), WIB_OFFSET_SECONDS);
     days.push({ date, sunrise, sunset, ...goldenHours(sunrise, sunset, WIB_OFFSET_SECONDS) });
   }
   return {
@@ -168,8 +180,8 @@ function createWeatherService({
       console.warn('[weather] Open-Meteo gagal:', err.message);
       // 3. Cache lama masih lebih baik daripada estimasi
       if (cached) return { ...cached.data, source: 'cache' };
-      // 4. Estimasi
-      return estimate(now());
+      // 4. Jam matahari dihitung dari koordinat
+      return estimate(now(), lat, lng);
     }
   }
 

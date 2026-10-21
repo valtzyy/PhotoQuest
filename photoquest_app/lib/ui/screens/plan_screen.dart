@@ -6,6 +6,7 @@ import '../../core/constants.dart';
 import '../../core/formatters.dart';
 import '../../data/models/score_result.dart';
 import '../../data/models/spot.dart';
+import '../../data/models/weather_info.dart';
 import '../../data/remote/ai_api.dart';
 import '../../data/remote/api_exception.dart';
 import '../../providers/weather_provider.dart';
@@ -86,6 +87,22 @@ class _PlanScreenState extends State<PlanScreen> {
     context.read<WeatherProvider>().load(s.latitude, s.longitude);
   }
 
+  /// Prakiraan per jam pada waktu rencana dari cuaca yang sudah dimuat di HP.
+  /// Hanya data segar (live / cache server); cache lama HP atau estimasi diabaikan.
+  HourlyPoint? _phoneForecast(Spot spot) {
+    final result = context.read<WeatherProvider>().resultFor(
+      spot.latitude,
+      spot.longitude,
+    );
+    if (result == null ||
+        result.fromCache ||
+        result.cachedAt != null ||
+        result.data.isEstimate) {
+      return null;
+    }
+    return result.data.hourAt(_plannedAt);
+  }
+
   /// Setiap input berubah -> hasil analisis lama tidak berlaku lagi.
   void _changed(VoidCallback update) {
     setState(() {
@@ -143,13 +160,19 @@ class _PlanScreenState extends State<PlanScreen> {
       _result = null;
       _saved = false;
     });
+    // Otomatis: bila HP punya prakiraan live (mis. backend kena batas Open-Meteo),
+    // kirim angkanya agar skor & rekomendasi AI memakai kondisi sebenarnya.
+    final forecast = _weather == WeatherChoice.auto
+        ? _phoneForecast(spot)
+        : null;
     try {
       final result = await context.read<AiApi>().score(
         spotId: spot.id,
         photoType: _photoType,
         plannedAt: _plannedAt,
-        cloudCover: _weather.cloudCover,
-        rainProb: _weather.rainProb,
+        cloudCover: forecast?.cloudCover ?? _weather.cloudCover,
+        rainProb: forecast?.precipitationProbability ?? _weather.rainProb,
+        fromForecast: forecast != null,
       );
       if (mounted) setState(() => _result = result);
     } on ApiException catch (e) {
@@ -414,7 +437,7 @@ class _PlanScreenState extends State<PlanScreen> {
       const SizedBox(height: 8),
       Text(
         'Awan ${r.cloudCover.round()}% · hujan ${r.rainProb.round()}% · $source'
-        '${r.weatherSource == 'estimate' ? '\nJam golden hour memakai estimasi 05.30/17.45 WIB' : ''}',
+        '${r.weatherSource == 'estimate' ? '\nJam golden hour dihitung dari posisi matahari di spot' : ''}',
         textAlign: TextAlign.center,
         style: theme.textTheme.bodySmall,
       ),

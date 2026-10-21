@@ -59,8 +59,30 @@ describe('POST /ai/score', () => {
     assert.strictEqual(d.conditions.cloud_cover, 40);
     assert.strictEqual(d.recommendation_source, 'template');
     assert.ok(Array.isArray(d.recommendation.composition));
-    // 17:00 WIB ada di golden hour sore estimasi (16:45–17:45)
+    // 17:00 WIB ada di golden hour sore hasil hitung astronomi (±16:30–17:30)
     assert.strictEqual(d.breakdown[0].score, 40);
+  });
+
+  test('Prakiraan dari HP (from_forecast) dipakai saat server tak punya data per jam', async () => {
+    const r = await post('/ai/score', {
+      spot_id: spot.id, photo_type: 'sunset', planned_at: plannedIso,
+      cloud_cover: 70, rain_prob: 30, from_forecast: true,
+    });
+    assert.strictEqual(r.status, 200);
+    assert.strictEqual(r.body.data.conditions.source, 'forecast');
+    assert.strictEqual(r.body.data.conditions.cloud_cover, 70);
+    assert.strictEqual(r.body.data.conditions.rain_prob, 30);
+  });
+
+  test('from_forecast tanpa angka tidak mengubah sumber; bukan boolean -> 400', async () => {
+    const noValues = await post('/ai/score', {
+      spot_id: spot.id, photo_type: 'sunset', planned_at: plannedIso, from_forecast: true,
+    });
+    assert.strictEqual(noValues.body.data.conditions.source, 'forecast'); // dari data server (jam 17:00)
+    const bad = await post('/ai/score', {
+      spot_id: spot.id, photo_type: 'sunset', planned_at: plannedIso, cloud_cover: 50, from_forecast: 'ya',
+    });
+    assert.strictEqual(bad.status, 400);
   });
 
   test('Cuaca manual menimpa prakiraan', async () => {

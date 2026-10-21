@@ -19,6 +19,7 @@ import 'data/local/spot_dao.dart';
 import 'data/local/weather_dao.dart';
 import 'data/remote/feedback_api.dart';
 import 'data/remote/spot_api.dart';
+import 'data/remote/open_meteo_api.dart';
 import 'data/remote/weather_api.dart';
 import 'data/remote/user_api.dart';
 import 'data/repositories/auth_repository.dart';
@@ -71,7 +72,11 @@ Future<void> main() async {
   final spotProvider = SpotProvider(spotRepository);
   final locationProvider = LocationProvider(LocationService(), db);
   final weatherProvider = WeatherProvider(
-    WeatherRepository(WeatherApi(apiClient), WeatherDao(db)),
+    WeatherRepository(
+      WeatherApi(apiClient),
+      WeatherDao(db),
+      direct: OpenMeteoApi(),
+    ),
   );
 
   // Pilihan tema (Sistem/Terang/Gelap) dari Profil, disimpan di tabel settings.

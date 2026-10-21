@@ -48,7 +48,14 @@ android {
     }
 
     buildTypes {
+        // Debug punya application ID sendiri (.dev) agar bisa terpasang berdampingan
+        // dengan versi release di HP yang sama.
+        debug {
+            applicationIdSuffix = ".dev"
+            manifestPlaceholders["appLabel"] = "PhotoQuest Dev"
+        }
         release {
+            manifestPlaceholders["appLabel"] = "PhotoQuest"
             signingConfig = if (hasReleaseKeystore) {
                 signingConfigs.getByName("release")
             } else {

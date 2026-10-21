@@ -21,6 +21,9 @@ module.exports = { applySpotImages };
 
 if (require.main === module) {
   const { pool } = require('../src/db');
+  // Tampilkan tujuan agar jelas yang diubah database lokal atau online (Neon).
+  const target = new URL(process.env.DATABASE_URL || require('../src/config').databaseUrl || 'postgres://?');
+  console.log(`Target database: ${target.hostname}${target.pathname}`);
   applySpotImages(pool)
     .then((n) => console.log(`Foto spot diperbarui: ${n} dari ${SPOT_IMAGES.length} spot`))
     .catch((err) => {

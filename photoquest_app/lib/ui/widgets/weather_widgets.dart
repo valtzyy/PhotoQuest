@@ -14,7 +14,8 @@ String goldenStatus(TimeRange range, DateTime now) {
   return h > 0 ? 'Mulai $h j $m mnt lagi' : 'Mulai $m mnt lagi';
 }
 
-/// Label sumber data cuaca agar jelas data asli, cache, atau estimasi.
+/// Label sumber data cuaca agar jelas: live, cache server, data lama di HP,
+/// offline, atau hanya jadwal matahari yang dihitung (tanpa data cuaca).
 class WeatherSourceChip extends StatelessWidget {
   const WeatherSourceChip({super.key, required this.result});
 
@@ -24,9 +25,11 @@ class WeatherSourceChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final info = result.data;
     final (String label, IconData icon) = info.isEstimate
-        ? ('Estimasi', Icons.help_outline)
+        ? ('Jadwal dihitung', Icons.calculate_outlined)
         : result.fromCache
         ? ('Offline (cache)', Icons.cloud_off)
+        : result.cachedAt != null
+        ? ('Data lama (HP)', Icons.history_toggle_off)
         : info.source == 'cache'
         ? ('Cache server', Icons.history)
         : ('Live', Icons.wifi);

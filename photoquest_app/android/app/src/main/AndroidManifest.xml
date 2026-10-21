@@ -14,7 +14,7 @@
     <!-- Tidak memakai SCHEDULE_EXACT_ALARM: notifikasi memakai inexactAllowWhileIdle -->
 
     <application
-        android:label="PhotoQuest"
+        android:label="${appLabel}"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false"

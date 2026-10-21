@@ -65,10 +65,12 @@ function nearestHour(weather, plannedAt) {
   return best;
 }
 
-// POST /ai/score { spot_id, photo_type, planned_at, cloud_cover?, rain_prob? }
+// POST /ai/score { spot_id, photo_type, planned_at, cloud_cover?, rain_prob?, from_forecast? }
+// from_forecast=true: cloud_cover/rain_prob berasal dari prakiraan Open-Meteo yang diambil HP
+// (bukan pilihan manual pengguna), dipakai saat backend sendiri tidak bisa mengambil prakiraan.
 router.post('/score', async (req, res) => {
   const { spot_id: spotId, photo_type: photoType, planned_at: plannedAtRaw } = req.body || {};
-  const { cloud_cover: cloudInput, rain_prob: rainInput } = req.body || {};
+  const { cloud_cover: cloudInput, rain_prob: rainInput, from_forecast: fromForecast } = req.body || {};
 
   if (!Number.isInteger(spotId)) return fail(res, 400, 'spot_id wajib berupa angka');
   if (!PHOTO_TYPES.includes(photoType)) {
@@ -86,6 +88,9 @@ router.post('/score', async (req, res) => {
       return fail(res, 400, `${name} harus angka 0–100`);
     }
   }
+  if (fromForecast !== undefined && typeof fromForecast !== 'boolean') {
+    return fail(res, 400, 'from_forecast harus true/false');
+  }
 
   const { rows } = await db.query('SELECT * FROM spots WHERE id = $1', [spotId]);
   const spot = rows[0];
@@ -100,7 +105,7 @@ router.post('/score', async (req, res) => {
   const manual = isPercent(cloudInput) || isPercent(rainInput);
   const cloudCover = isPercent(cloudInput) ? cloudInput : hour?.cloud_cover ?? DEFAULT_CLOUD;
   const rainProb = isPercent(rainInput) ? rainInput : hour?.precipitation_probability ?? DEFAULT_RAIN;
-  const conditionSource = manual ? 'manual' : hour ? 'forecast' : 'default';
+  const conditionSource = manual ? (fromForecast ? 'forecast' : 'manual') : hour ? 'forecast' : 'default';
 
   const result = calculateScore({ spot, photoType, plannedAt, cloudCover, rainProb, golden });
 

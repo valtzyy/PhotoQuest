@@ -96,6 +96,7 @@ class _FakeAi extends AiApi {
   _FakeAi() : super(_client);
 
   Map<String, dynamic>? lastScoreArgs;
+  bool? lastFromForecast;
   int savedSessions = 0;
   bool chatFails = false;
   Map<String, String>? lastChatContext;
@@ -108,7 +109,9 @@ class _FakeAi extends AiApi {
     required DateTime plannedAt,
     int? cloudCover,
     int? rainProb,
+    bool fromForecast = false,
   }) async {
+    lastFromForecast = fromForecast;
     lastScoreArgs = {
       'spotId': spotId,
       'photoType': photoType,
@@ -147,21 +150,46 @@ class _FakeAi extends AiApi {
 }
 
 class _FakeWeatherRepo extends WeatherRepository {
-  _FakeWeatherRepo()
+  _FakeWeatherRepo({this.result})
     : super(WeatherApi(_client), WeatherDao(DbHelper.instance));
+
+  final CachedResult<WeatherInfo>? result;
 
   @override
   Future<CachedResult<WeatherInfo>> get(double lat, double lng) async =>
-      CachedResult(WeatherInfo.estimate(DateTime.now()));
+      result ?? CachedResult(WeatherInfo.estimate(DateTime.now()));
 }
 
-Widget _wrap(Widget child, AiApi ai) => MultiProvider(
-  providers: [
-    Provider<AiApi>.value(value: ai),
-    ChangeNotifierProvider(create: (_) => WeatherProvider(_FakeWeatherRepo())),
-  ],
-  child: MaterialApp(home: child),
-);
+/// Prakiraan live: awan 70% / hujan 30% pada jam-jam sekitar sekarang.
+WeatherInfo _liveInfo() {
+  final now = DateTime.now();
+  return WeatherInfo.fromJson({
+    'source': 'live',
+    'is_estimate': false,
+    'fetched_at': now.toUtc().toIso8601String(),
+    'current': null,
+    'days': [],
+    'hourly': [
+      for (var h = 0; h < 4; h++)
+        {
+          'time': now.add(Duration(hours: h)).toUtc().toIso8601String(),
+          'cloud_cover': 70,
+          'precipitation_probability': 30,
+        },
+    ],
+  });
+}
+
+Widget _wrap(Widget child, AiApi ai, {CachedResult<WeatherInfo>? weather}) =>
+    MultiProvider(
+      providers: [
+        Provider<AiApi>.value(value: ai),
+        ChangeNotifierProvider(
+          create: (_) => WeatherProvider(_FakeWeatherRepo(result: weather)),
+        ),
+      ],
+      child: MaterialApp(home: child),
+    );
 
 void main() {
   setUpAll(() => initializeDateFormatting('id_ID'));
@@ -211,6 +239,59 @@ void main() {
       expect(find.text('Tersimpan'), findsOneWidget);
     },
   );
+
+  testWidgets('Plan Otomatis + prakiraan live di HP -> dikirim ke AI sebagai from_forecast', (
+    tester,
+  ) async {
+    final ai = _FakeAi();
+    await tester.pumpWidget(
+      _wrap(
+        const PlanScreen(initialSpot: _spot),
+        ai,
+        weather: CachedResult(_liveInfo()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Analisis'));
+    await tester.pumpAndSettle();
+    expect(ai.lastScoreArgs!['cloud'], 70);
+    expect(ai.lastScoreArgs!['rain'], 30);
+    expect(ai.lastFromForecast, isTrue);
+  });
+
+  testWidgets('Plan Otomatis tanpa data cuaca di HP (estimasi) -> server yang menentukan', (
+    tester,
+  ) async {
+    final ai = _FakeAi();
+    await tester.pumpWidget(_wrap(const PlanScreen(initialSpot: _spot), ai));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Analisis'));
+    await tester.pumpAndSettle();
+    expect(ai.lastScoreArgs!['cloud'], isNull);
+    expect(ai.lastScoreArgs!['rain'], isNull);
+    expect(ai.lastFromForecast, isFalse);
+  });
+
+  testWidgets('Plan Otomatis dengan data lama dari cache HP -> tidak dikirim', (
+    tester,
+  ) async {
+    final ai = _FakeAi();
+    await tester.pumpWidget(
+      _wrap(
+        const PlanScreen(initialSpot: _spot),
+        ai,
+        weather: CachedResult(_liveInfo(), cachedAt: DateTime(2026, 10, 1)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Analisis'));
+    await tester.pumpAndSettle();
+    expect(ai.lastScoreArgs!['cloud'], isNull);
+    expect(ai.lastFromForecast, isFalse);
+  });
 
   testWidgets('Assistant: chip konteks, kirim pesan, dan riwayat', (
     tester,
