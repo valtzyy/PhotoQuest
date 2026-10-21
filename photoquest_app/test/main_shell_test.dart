@@ -26,6 +26,7 @@ import 'package:photoquest_app/providers/location_provider.dart';
 import 'package:photoquest_app/providers/weather_provider.dart';
 import 'package:photoquest_app/services/location_service.dart';
 import 'package:photoquest_app/services/biometric_service.dart';
+import 'package:photoquest_app/ui/screens/home_tab.dart';
 import 'package:photoquest_app/ui/screens/main_shell.dart';
 
 final _client = ApiClient(SecureStore());
@@ -61,20 +62,24 @@ class _FakeLocation extends LocationProvider {
   Future<void> init() async {}
 }
 
-/// Cuaca palsu: selalu estimasi lokal, tanpa jaringan.
+/// Cuaca palsu: selalu estimasi lokal, tanpa jaringan. Mencatat jumlah pemuatan.
 class _FakeWeatherRepo extends WeatherRepository {
   _FakeWeatherRepo()
     : super(WeatherApi(_client), WeatherDao(DbHelper.instance));
 
+  int calls = 0;
+
   @override
-  Future<CachedResult<WeatherInfo>> get(double lat, double lng) async =>
-      CachedResult(WeatherInfo.estimate(DateTime.now()));
+  Future<CachedResult<WeatherInfo>> get(double lat, double lng) async {
+    calls++;
+    return CachedResult(WeatherInfo.estimate(DateTime.now()));
+  }
 }
 
 void main() {
   setUpAll(() => initializeDateFormatting('id_ID'));
 
-  Widget buildShell() {
+  Widget buildShell({_FakeWeatherRepo? weatherRepo}) {
     final store = SecureStore();
     final auth = AuthProvider(
       AuthRepository(AuthApi(_client), store, DbHelper.instance),
@@ -88,7 +93,7 @@ void main() {
         Provider<FeedbackRepository>.value(value: _FakeFeedbackRepo()),
         ChangeNotifierProvider<LocationProvider>.value(value: _FakeLocation()),
         ChangeNotifierProvider<WeatherProvider>.value(
-          value: WeatherProvider(_FakeWeatherRepo()),
+          value: WeatherProvider(weatherRepo ?? _FakeWeatherRepo()),
         ),
       ],
       child: const MaterialApp(home: MainShell()),
@@ -109,6 +114,26 @@ void main() {
         findsOneWidget,
       );
     }
+  });
+
+  testWidgets('Home: tarik ke bawah memuat ulang cuaca (bukan memakai hasil lama)', (
+    tester,
+  ) async {
+    final repo = _FakeWeatherRepo();
+    await tester.pumpWidget(buildShell(weatherRepo: repo));
+    await tester.pumpAndSettle();
+    expect(repo.calls, 1);
+
+    await tester.fling(
+      find.descendant(
+        of: find.byType(HomeTab),
+        matching: find.byType(ListView),
+      ),
+      const Offset(0, 300),
+      1000,
+    );
+    await tester.pumpAndSettle();
+    expect(repo.calls, 2);
   });
 
   testWidgets('Tab Logout menampilkan dialog konfirmasi, Batal tetap di Home', (

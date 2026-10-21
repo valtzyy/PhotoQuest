@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../../core/pq_colors.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/location_provider.dart';
+import '../../providers/weather_provider.dart';
 import '../widgets/glass/glass_icon_tile.dart';
 import '../widgets/glass/glass_pressable.dart';
 import '../widgets/state_views.dart';
@@ -90,6 +92,18 @@ class HomeTab extends StatelessWidget {
 
   void _open(BuildContext context, _MenuItem item) =>
       Navigator.of(context).push(MaterialPageRoute(builder: item.builder));
+
+  /// Tarik-untuk-refresh: muat ulang cuaca di titik yang sama dengan kartu cuaca.
+  Future<void> _refresh(BuildContext context) {
+    final point =
+        context.read<LocationProvider>().position ?? LocationProvider.demoPoint;
+    return context.read<WeatherProvider>().load(
+      point.latitude,
+      point.longitude,
+      force: true,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
@@ -100,73 +114,78 @@ class HomeTab extends StatelessWidget {
         children: [
           if (auth.isOffline) const OfflineBanner(),
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                // Header sapaan
-                Row(
-                  children: [
-                    UserAvatar(user: auth.user, radius: 24),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Halo, ${auth.user?.name ?? ''}',
-                            style: theme.textTheme.titleLarge,
-                          ),
-                          const Text('Siap berburu cahaya hari ini?'),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                // Kartu cuaca singkat + golden hour hari ini (Open-Meteo via backend)
-                const WeatherCard(),
-                const SizedBox(height: 16),
-                Text('Menu', style: theme.textTheme.titleMedium),
-                const SizedBox(height: 8),
-                GridView.count(
-                  crossAxisCount: 3,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
-                  children: [
-                    for (final item in _menu)
-                      GlassPressable(
-                        onTap: () => _open(context, item),
-                        padding: const EdgeInsets.all(8),
+            child: RefreshIndicator(
+              onRefresh: () => _refresh(context),
+              child: ListView(
+                // Selalu bisa ditarik, walau isi Home muat dalam satu layar.
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
+                children: [
+                  // Header sapaan
+                  Row(
+                    children: [
+                      UserAvatar(user: auth.user, radius: 24),
+                      const SizedBox(width: 12),
+                      Expanded(
                         child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            GlassIconTile(
-                              icon: item.icon,
-                              colors: item.colors,
-                              size: 40,
+                            Text(
+                              'Halo, ${auth.user?.name ?? ''}',
+                              style: theme.textTheme.titleLarge,
                             ),
-                            const SizedBox(height: 6),
-                            // Flexible: label panjang/skala font besar
-                            // dipotong, bukan overflow.
-                            Flexible(
-                              child: Text(
-                                item.label,
-                                textAlign: TextAlign.center,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: PqColors.of(context).text,
-                                ),
-                              ),
-                            ),
+                            const Text('Siap berburu cahaya hari ini?'),
                           ],
                         ),
                       ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Kartu cuaca singkat + golden hour hari ini (Open-Meteo via backend)
+                  const WeatherCard(),
+                  const SizedBox(height: 16),
+                  Text('Menu', style: theme.textTheme.titleMedium),
+                  const SizedBox(height: 8),
+                  GridView.count(
+                    crossAxisCount: 3,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    children: [
+                      for (final item in _menu)
+                        GlassPressable(
+                          onTap: () => _open(context, item),
+                          padding: const EdgeInsets.all(8),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              GlassIconTile(
+                                icon: item.icon,
+                                colors: item.colors,
+                                size: 40,
+                              ),
+                              const SizedBox(height: 6),
+                              // Flexible: label panjang/skala font besar
+                              // dipotong, bukan overflow.
+                              Flexible(
+                                child: Text(
+                                  item.label,
+                                  textAlign: TextAlign.center,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: PqColors.of(context).text,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ],
