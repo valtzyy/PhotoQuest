@@ -18,6 +18,7 @@ import 'package:photoquest_app/data/repositories/weather_repository.dart';
 import 'package:photoquest_app/providers/weather_provider.dart';
 import 'package:photoquest_app/ui/screens/assistant_screen.dart';
 import 'package:photoquest_app/ui/screens/plan_screen.dart';
+import 'package:photoquest_app/ui/widgets/markdown_text.dart';
 
 final _client = ApiClient(SecureStore());
 
@@ -99,6 +100,7 @@ class _FakeAi extends AiApi {
   bool? lastFromForecast;
   int savedSessions = 0;
   bool chatFails = false;
+  String chatReply = 'Gunakan rule of thirds.';
   Map<String, String>? lastChatContext;
   List<ChatMessage>? lastHistory;
 
@@ -145,7 +147,7 @@ class _FakeAi extends AiApi {
         statusCode: 503,
       );
     }
-    return 'Gunakan rule of thirds.';
+    return chatReply;
   }
 }
 
@@ -240,39 +242,41 @@ void main() {
     },
   );
 
-  testWidgets('Plan Otomatis + prakiraan live di HP -> dikirim ke AI sebagai from_forecast', (
-    tester,
-  ) async {
-    final ai = _FakeAi();
-    await tester.pumpWidget(
-      _wrap(
-        const PlanScreen(initialSpot: _spot),
-        ai,
-        weather: CachedResult(_liveInfo()),
-      ),
-    );
-    await tester.pumpAndSettle();
+  testWidgets(
+    'Plan Otomatis + prakiraan live di HP -> dikirim ke AI sebagai from_forecast',
+    (tester) async {
+      final ai = _FakeAi();
+      await tester.pumpWidget(
+        _wrap(
+          const PlanScreen(initialSpot: _spot),
+          ai,
+          weather: CachedResult(_liveInfo()),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Analisis'));
-    await tester.pumpAndSettle();
-    expect(ai.lastScoreArgs!['cloud'], 70);
-    expect(ai.lastScoreArgs!['rain'], 30);
-    expect(ai.lastFromForecast, isTrue);
-  });
+      await tester.tap(find.text('Analisis'));
+      await tester.pumpAndSettle();
+      expect(ai.lastScoreArgs!['cloud'], 70);
+      expect(ai.lastScoreArgs!['rain'], 30);
+      expect(ai.lastFromForecast, isTrue);
+    },
+  );
 
-  testWidgets('Plan Otomatis tanpa data cuaca di HP (estimasi) -> server yang menentukan', (
-    tester,
-  ) async {
-    final ai = _FakeAi();
-    await tester.pumpWidget(_wrap(const PlanScreen(initialSpot: _spot), ai));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'Plan Otomatis tanpa data cuaca di HP (estimasi) -> server yang menentukan',
+    (tester) async {
+      final ai = _FakeAi();
+      await tester.pumpWidget(_wrap(const PlanScreen(initialSpot: _spot), ai));
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Analisis'));
-    await tester.pumpAndSettle();
-    expect(ai.lastScoreArgs!['cloud'], isNull);
-    expect(ai.lastScoreArgs!['rain'], isNull);
-    expect(ai.lastFromForecast, isFalse);
-  });
+      await tester.tap(find.text('Analisis'));
+      await tester.pumpAndSettle();
+      expect(ai.lastScoreArgs!['cloud'], isNull);
+      expect(ai.lastScoreArgs!['rain'], isNull);
+      expect(ai.lastFromForecast, isFalse);
+    },
+  );
 
   testWidgets('Plan Otomatis dengan data lama dari cache HP -> tidak dikirim', (
     tester,
@@ -312,7 +316,10 @@ void main() {
     await tester.enterText(find.byType(TextField), 'Tips sunset?');
     await tester.tap(find.byTooltip('Kirim'));
     await tester.pumpAndSettle();
-    expect(find.text('Gunakan rule of thirds.'), findsOneWidget);
+    expect(
+      find.text('Gunakan rule of thirds.', findRichText: true),
+      findsOneWidget,
+    );
     expect(ai.lastChatContext, {'score': '86', 'label': 'Sangat Baik'});
 
     await tester.enterText(find.byType(TextField), 'Lalu?');
@@ -344,6 +351,43 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Gunakan rule of thirds.'), findsOneWidget);
+    expect(
+      find.text('Gunakan rule of thirds.', findRichText: true),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Assistant: markdown jawaban dirender tanpa tanda bintang', (
+    tester,
+  ) async {
+    final ai = _FakeAi()
+      ..chatReply =
+          '**Siluet** saat *sunset*:\n* Ukur cahaya ke langit\n1. Pakai **f/8**';
+    await tester.pumpWidget(_wrap(const AssistantScreen(), ai));
+
+    await tester.enterText(find.byType(TextField), 'Siluet **x**?');
+    await tester.tap(find.byTooltip('Kirim'));
+    await tester.pumpAndSettle();
+
+    // Pesan pengguna tetap teks biasa (bintang tidak diolah).
+    expect(find.text('Siluet **x**?'), findsOneWidget);
+    expect(
+      find.text('Siluet saat sunset:', findRichText: true),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Ukur cahaya ke langit', findRichText: true),
+      findsOneWidget,
+    );
+    expect(find.text('•'), findsOneWidget);
+    expect(find.text('Pakai f/8', findRichText: true), findsOneWidget);
+    expect(find.textContaining('**', findRichText: true), findsOneWidget);
+  });
+
+  test('MarkdownText.inlineSpans: tebal, miring, dan teks biasa', () {
+    final spans = MarkdownText.inlineSpans('a **b** *c* 2 * 3', Colors.black);
+    expect(spans.map((s) => s.text), ['a ', 'b', ' ', 'c', ' 2 * 3']);
+    expect(spans[1].style!.fontWeight, FontWeight.w700);
+    expect(spans[3].style!.fontStyle, FontStyle.italic);
   });
 }

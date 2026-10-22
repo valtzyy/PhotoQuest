@@ -7,6 +7,7 @@ import '../../data/models/spot.dart';
 import '../../data/remote/ai_api.dart';
 import '../../data/remote/api_exception.dart';
 import '../widgets/glass/pq_background.dart';
+import '../widgets/markdown_text.dart';
 
 /// Photography Assistant (LLM via backend).
 ///
@@ -270,7 +271,10 @@ class _Bubble extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: PqColors.of(context).panelEdge),
         ),
-        child: SelectableText(message.text),
+        // Jawaban LLM sering berisi markdown; pesan pengguna tetap teks biasa.
+        child: isUser
+            ? SelectableText(message.text)
+            : MarkdownText(message.text),
       ),
     );
   }
