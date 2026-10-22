@@ -63,6 +63,14 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
     );
   }
 
+  static const double _headerHeight = 220;
+
+  static final ButtonStyle _overlayButtonStyle = IconButton.styleFrom(
+    backgroundColor: Colors.black38,
+    foregroundColor: Colors.white,
+    disabledForegroundColor: Colors.white54,
+  );
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -75,38 +83,88 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
           slivers: [
             SliverAppBar(
               pinned: true,
-              expandedHeight: 200,
+              expandedHeight: _headerHeight,
               // Appbar tema transparan; saat menciut perlu latar agar judul
               // tidak tertimpa konten yang digulir di bawahnya.
               backgroundColor: PqColors.of(context).bgBase,
-              flexibleSpace: FlexibleSpaceBar(
-                title: Text(
-                  _spot.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                background: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    SpotImage(spot: _spot, iconSize: 72),
-                    // Gradien gelap di bawah agar judul tetap terbaca di atas foto.
-                    const DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.center,
-                          end: Alignment.bottomCenter,
-                          colors: [Colors.transparent, Colors.black54],
+              flexibleSpace: LayoutBuilder(
+                builder: (context, constraints) {
+                  // t = 1 saat header terbuka penuh, 0 saat menciut jadi appbar biasa.
+                  final minHeight =
+                      kToolbarHeight + MediaQuery.paddingOf(context).top;
+                  final t =
+                      ((constraints.maxHeight - minHeight) /
+                              (_headerHeight - minHeight))
+                          .clamp(0.0, 1.0);
+                  final base =
+                      theme.appBarTheme.titleTextStyle ??
+                      theme.textTheme.titleLarge!;
+                  return Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Foto + gradien gelap di bawah; memudar saat header menciut.
+                      Opacity(
+                        opacity: t,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            SpotImage(spot: _spot, iconSize: 72),
+                            const DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.center,
+                                  end: Alignment.bottomCenter,
+                                  colors: [Colors.transparent, Colors.black87],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                  ],
+                      // Judul putih di atas foto, kembali ke warna tema saat menciut.
+                      Positioned(
+                        left: 16 + 40 * (1 - t),
+                        right: 64,
+                        bottom: 14,
+                        child: Text(
+                          _spot.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: base.copyWith(
+                            color: Color.lerp(base.color, Colors.white, t),
+                            fontWeight: FontWeight.w700,
+                            shadows: [
+                              Shadow(
+                                blurRadius: 8,
+                                color: Colors.black.withValues(alpha: 0.6 * t),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+              // Tombol dengan latar bulat semi-transparan agar tetap terlihat di atas foto.
+              leading: Padding(
+                padding: const EdgeInsets.all(6),
+                child: IconButton(
+                  tooltip: 'Kembali',
+                  style: _overlayButtonStyle,
+                  onPressed: () => Navigator.of(context).maybePop(),
+                  icon: const Icon(Icons.arrow_back),
                 ),
               ),
               actions: [
-                IconButton(
-                  tooltip: isFav ? 'Hapus dari favorit' : 'Tambah ke favorit',
-                  onPressed: _togglingFav ? null : _toggleFavorite,
-                  icon: Icon(isFav ? Icons.favorite : Icons.favorite_border),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(0, 6, 10, 6),
+                  child: IconButton(
+                    tooltip: isFav ? 'Hapus dari favorit' : 'Tambah ke favorit',
+                    style: _overlayButtonStyle,
+                    onPressed: _togglingFav ? null : _toggleFavorite,
+                    icon: Icon(isFav ? Icons.favorite : Icons.favorite_border),
+                  ),
                 ),
               ],
             ),
