@@ -40,7 +40,7 @@ abstract final class PqPalette {
   );
   static const yellowTone = GlassToneColors(
     top: Color(0xC7FFE896),
-    bottom: Color(0xADFFCB46),
+    bottom: Color.fromARGB(172, 212, 186, 123),
     lip: Color(0x73D69E14),
     edge: Color(0xD9FFF5D2),
     onColor: Color(0xFF7A5A12),
