@@ -1,13 +1,13 @@
-import '../models/chain_block.dart';
+import '../models/chain_record.dart';
 import 'api_client.dart';
 
 /// Hasil POST /challenge.
 class ChallengeSubmitResult {
-  const ChallengeSubmitResult({this.blockIndex, this.blockHash});
+  const ChallengeSubmitResult({this.chainStatus});
 
-  /// Nomor blok di blockchain (null jika challenge gagal / tidak dicatat).
-  final int? blockIndex;
-  final String? blockHash;
+  /// Status pencatatan blockchain: null bila challenge gagal / tidak dicatat,
+  /// pending bila transaksi Sepolia sedang diproses di latar belakang.
+  final ChainStatus? chainStatus;
 }
 
 /// Endpoint Steady Shot Challenge (/challenge) dan Chain Explorer (/chain).
@@ -35,10 +35,11 @@ class ChallengeApi {
         },
       ),
     );
-    final block = data['block'] as Map<String, dynamic>?;
+    final chain = data['chain'] as Map<String, dynamic>?;
     return ChallengeSubmitResult(
-      blockIndex: block?['block_index'] as int?,
-      blockHash: block?['hash'] as String?,
+      chainStatus: chain == null
+          ? null
+          : ChainStatus.parse(chain['status'] as String?),
     );
   }
 
@@ -49,6 +50,14 @@ class ChallengeApi {
   Future<ChainVerification> verify() async => ChainVerification.fromJson(
     await _client.send<Map<String, dynamic>>((dio) => dio.get('/chain/verify')),
   );
+
+  /// Kirim ulang catatan yang gagal ke Sepolia; mengembalikan jumlah yang diantrikan.
+  Future<int> retry() async {
+    final data = await _client.send<Map<String, dynamic>>(
+      (dio) => dio.post('/chain/retry'),
+    );
+    return data['queued'] as int? ?? 0;
+  }
 
   Future<void> tamperDemo() =>
       _client.send<dynamic>((dio) => dio.post('/chain/tamper-demo'));

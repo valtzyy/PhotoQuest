@@ -116,25 +116,26 @@ void main() {
     }
   });
 
-  testWidgets('Home: tarik ke bawah memuat ulang cuaca (bukan memakai hasil lama)', (
-    tester,
-  ) async {
-    final repo = _FakeWeatherRepo();
-    await tester.pumpWidget(buildShell(weatherRepo: repo));
-    await tester.pumpAndSettle();
-    expect(repo.calls, 1);
+  testWidgets(
+    'Home: tarik ke bawah memuat ulang cuaca (bukan memakai hasil lama)',
+    (tester) async {
+      final repo = _FakeWeatherRepo();
+      await tester.pumpWidget(buildShell(weatherRepo: repo));
+      await tester.pumpAndSettle();
+      expect(repo.calls, 1);
 
-    await tester.fling(
-      find.descendant(
-        of: find.byType(HomeTab),
-        matching: find.byType(ListView),
-      ),
-      const Offset(0, 300),
-      1000,
-    );
-    await tester.pumpAndSettle();
-    expect(repo.calls, 2);
-  });
+      await tester.fling(
+        find.descendant(
+          of: find.byType(HomeTab),
+          matching: find.byType(ListView),
+        ),
+        const Offset(0, 300),
+        1000,
+      );
+      await tester.pumpAndSettle();
+      expect(repo.calls, 2);
+    },
+  );
 
   testWidgets('Tab Logout menampilkan dialog konfirmasi, Batal tetap di Home', (
     tester,

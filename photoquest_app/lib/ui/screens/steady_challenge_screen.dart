@@ -17,7 +17,7 @@ import 'chain_explorer_screen.dart';
 enum _Phase { idle, countdown, running, finished }
 
 /// Steady Shot Challenge: tahan HP rata & stabil 5 detik dalam 20 detik.
-/// Hasil yang berhasil dicatat di blockchain lewat POST /challenge.
+/// Hasil yang berhasil dicatat di blockchain Sepolia (di latar belakang) lewat POST /challenge.
 class SteadyChallengeScreen extends StatelessWidget {
   const SteadyChallengeScreen({super.key, this.createSensors});
 
@@ -170,7 +170,7 @@ class _ChallengeViewState extends State<_ChallengeView> {
       'Pegang HP tegak (portrait). Jaga kemiringan ≤ 2° dan getaran < 0,15 rad/s '
       'terus-menerus selama 5 detik. Waktu maksimal 20 detik. '
       'Jika keluar batas, hitungan kembali ke 0.\n\n'
-      'Berhasil = hasil dicatat di blockchain PhotoQuest.',
+      'Berhasil = hasil dicatat di blockchain publik Ethereum Sepolia (testnet).',
       textAlign: TextAlign.center,
     ),
     const SizedBox(height: 24),
@@ -293,16 +293,14 @@ class _ChallengeViewState extends State<_ChallengeView> {
           textAlign: TextAlign.center,
           style: TextStyle(color: theme.colorScheme.error),
         )
-      else if (_submitResult?.blockIndex != null)
-        Card(
+      else if (_submitResult?.chainStatus != null)
+        const Card(
           child: ListTile(
-            leading: const Icon(Icons.link, color: PqPalette.success),
-            title: Text(
-              'Tercatat di blockchain ✓ (block #${_submitResult!.blockIndex})',
-            ),
+            leading: Icon(Icons.hourglass_top, color: PqPalette.warning),
+            title: Text('Dicatat ke blockchain Sepolia…'),
             subtitle: Text(
-              'hash ${_submitResult!.blockHash!.substring(0, 16)}…',
-              style: const TextStyle(fontFamily: 'monospace'),
+              'Transaksi butuh sekitar 15–30 detik. Hasil sudah tersimpan; '
+              'pantau statusnya di Chain Explorer.',
             ),
           ),
         )

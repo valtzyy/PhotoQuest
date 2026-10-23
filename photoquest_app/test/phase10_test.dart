@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -12,7 +11,7 @@ import 'package:photoquest_app/core/steady_challenge.dart';
 import 'package:photoquest_app/data/local/db_helper.dart';
 import 'package:photoquest_app/data/local/quiz_dao.dart';
 import 'package:photoquest_app/data/local/secure_store.dart';
-import 'package:photoquest_app/data/models/chain_block.dart';
+import 'package:photoquest_app/data/models/chain_record.dart';
 import 'package:photoquest_app/data/models/quiz_question.dart';
 import 'package:photoquest_app/data/remote/api_client.dart';
 import 'package:photoquest_app/data/remote/challenge_api.dart';
@@ -21,31 +20,54 @@ import 'package:photoquest_app/ui/screens/chain_explorer_screen.dart';
 import 'package:photoquest_app/ui/screens/quiz_screen.dart';
 import 'package:photoquest_app/ui/screens/steady_challenge_screen.dart';
 
-/// Dua blok yang DITAMBANG OLEH BACKEND (chainService.mine di Node.js).
-/// Jika Dart menghitung hash yang sama, verifikasi di HP konsisten dengan server.
-const _fixture = '''
-[
- {"block_index":0,"timestamp":"2026-10-06T01:00:00.000Z","data":{"message":"Genesis block PhotoQuest"},
-  "prev_hash":"0","nonce":279,"hash":"00bbb197722131b6ac35e101b7ec1d64be2203dbddbeebc07b7a981915152f15"},
- {"block_index":1,"timestamp":"2026-10-06T01:05:30.123Z",
-  "data":{"note":"Tugu é \\"ok\\"","avg_shake":0.079,"user_id":3,"type":"steady_shot","hold_seconds":5.04,"attempt_id":12,"avg_tilt":1.235},
-  "prev_hash":"00bbb197722131b6ac35e101b7ec1d64be2203dbddbeebc07b7a981915152f15",
-  "nonce":116,"hash":"00b2b8f1afc2ca9e49921b08c269890770a06cc259d4bd67187f6f428a765a9a"}
-]
-''';
+const _contract = '0x1234567890abcdef1234567890abcdef12345678';
+const _txHash =
+    '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
-List<ChainBlock> fixtureBlocks() => (jsonDecode(_fixture) as List)
-    .map((e) => ChainBlock.fromJson(e as Map<String, dynamic>))
-    .toList();
+ChainRecord _record(
+  int attemptId,
+  ChainStatus status, {
+  String? error,
+  bool tampered = false,
+}) => ChainRecord(
+  attemptId: attemptId,
+  userId: 3,
+  holdSeconds: tampered ? 19.99 : 5.04,
+  avgTilt: 1.235,
+  avgShake: 0.079,
+  status: status,
+  createdAt: DateTime.utc(2026, 10, 23, 1, 5, 30),
+  dataHash: '0xbeef',
+  txHash: status == ChainStatus.failed ? null : _txHash,
+  error: error,
+  chainIndex: status == ChainStatus.confirmed ? attemptId - 12 : null,
+  blockNumber: status == ChainStatus.confirmed ? 5000123 : null,
+  confirmedAt: status == ChainStatus.confirmed
+      ? DateTime.utc(2026, 10, 23, 1, 6)
+      : null,
+  tampered: tampered,
+  explorerUrl: status == ChainStatus.failed
+      ? null
+      : 'https://sepolia.etherscan.io/tx/$_txHash',
+);
 
 final _client = ApiClient(SecureStore());
 
-/// ChallengeApi palsu: menyimpan chain di memori, tanpa jaringan.
+/// ChallengeApi palsu: menyimpan catatan di memori, tanpa jaringan.
 class _FakeChainApi extends ChallengeApi {
-  _FakeChainApi() : super(_client);
+  _FakeChainApi({List<ChainRecord>? records})
+    : records = records ?? [_record(12, ChainStatus.confirmed)],
+      super(_client);
 
-  List<ChainBlock> blocks = fixtureBlocks();
+  List<ChainRecord> records;
   int submits = 0;
+  int retries = 0;
+  int loads = 0;
+  bool tampered = false;
+
+  /// true: panggilan chain() berikutnya mengubah semua "pending" menjadi confirmed
+  /// (meniru server yang memperbarui status dari Sepolia).
+  bool confirmOnNextLoad = false;
 
   @override
   Future<ChallengeSubmitResult> submit({
@@ -56,36 +78,64 @@ class _FakeChainApi extends ChallengeApi {
   }) async {
     submits++;
     return ChallengeSubmitResult(
-      blockIndex: success ? 7 : null,
-      blockHash: success ? '00abcdef0123456789' : null,
+      chainStatus: success ? ChainStatus.pending : null,
     );
   }
 
   @override
-  Future<ChainInfo> chain() async =>
-      ChainInfo(demoMode: true, difficulty: 2, blocks: blocks);
-
-  @override
-  Future<ChainVerification> verify() async => ChainHasher.verify(blocks);
-
-  @override
-  Future<void> tamperDemo() async {
-    final last = blocks.last;
-    blocks = [
-      ...blocks.take(blocks.length - 1),
-      ChainBlock(
-        blockIndex: last.blockIndex,
-        timestamp: last.timestamp,
-        data: {...last.data, 'hold_seconds': 99.9},
-        prevHash: last.prevHash,
-        hash: last.hash, // hash TIDAK dihitung ulang
-        nonce: last.nonce,
-      ),
-    ];
+  Future<ChainInfo> chain() async {
+    loads++;
+    if (confirmOnNextLoad) {
+      records = [
+        for (final r in records)
+          r.status == ChainStatus.pending
+              ? _record(r.attemptId, ChainStatus.confirmed)
+              : r,
+      ];
+      confirmOnNextLoad = false;
+    }
+    return ChainInfo(
+      demoMode: true,
+      network: 'sepolia',
+      configured: true,
+      contractAddress: _contract,
+      contractUrl: 'https://sepolia.etherscan.io/address/$_contract',
+      records: records,
+    );
   }
 
   @override
-  Future<void> repairDemo() async => blocks = fixtureBlocks();
+  Future<ChainVerification> verify() async => tampered
+      ? const ChainVerification(
+          valid: false,
+          checked: 1,
+          mismatches: [
+            ChainMismatch(
+              attemptId: 12,
+              chainIndex: 0,
+              reason: 'hold_seconds berbeda (database 19.99, on-chain 5.04)',
+            ),
+          ],
+        )
+      : ChainVerification(valid: true, checked: records.length);
+
+  @override
+  Future<int> retry() async {
+    retries++;
+    records = [
+      for (final r in records)
+        r.status == ChainStatus.failed
+            ? _record(r.attemptId, ChainStatus.pending)
+            : r,
+    ];
+    return 1;
+  }
+
+  @override
+  Future<void> tamperDemo() async => tampered = true;
+
+  @override
+  Future<void> repairDemo() async => tampered = false;
 }
 
 class _FakeQuizDao extends QuizDao {
@@ -109,38 +159,81 @@ AccelerometerEvent _upright(double deg) {
 void main() {
   setUpAll(() => initializeDateFormatting('id_ID'));
 
-  group('Blockchain: kompatibel dengan backend', () {
-    test(
-      'Hash yang dihitung Dart = hash dari Node.js (walau urutan key berbeda)',
-      () {
-        final blocks = fixtureBlocks();
-        for (final b in blocks) {
-          expect(
-            ChainHasher.computeHash(b),
-            b.hash,
-            reason: 'blok #${b.blockIndex}',
-          );
-        }
-        expect(ChainHasher.verify(blocks).valid, isTrue);
-      },
-    );
+  group('Blockchain Sepolia: model dari respons backend', () {
+    test('GET /chain: catatan, status, dan info kontrak terbaca', () {
+      final info = ChainInfo.fromJson({
+        'demo_mode': true,
+        'network': 'sepolia',
+        'configured': true,
+        'contract_address': _contract,
+        'contract_url': 'https://sepolia.etherscan.io/address/$_contract',
+        'records': [
+          {
+            'attempt_id': 12,
+            'user_id': 3,
+            'hold_seconds': 5.04,
+            'avg_tilt': 1.235,
+            'avg_shake': 0.079,
+            'data_hash': '0xbeef',
+            'tx_hash': _txHash,
+            'status': 'confirmed',
+            'error': null,
+            'chain_index': 0,
+            'block_number': 5000123,
+            'confirmed_at': '2026-10-23T01:06:00.000Z',
+            'created_at': '2026-10-23T01:05:30.000Z',
+            'tampered': false,
+            'explorer_url': 'https://sepolia.etherscan.io/tx/$_txHash',
+          },
+          {
+            'attempt_id': 13,
+            'user_id': 3,
+            'hold_seconds': 6,
+            'avg_tilt': 1,
+            'avg_shake': 0.1,
+            'data_hash': null,
+            'tx_hash': null,
+            'status': 'failed',
+            'error': 'insufficient funds',
+            'chain_index': null,
+            'block_number': null,
+            'confirmed_at': null,
+            'created_at': '2026-10-23T02:00:00.000Z',
+            'explorer_url': null,
+          },
+        ],
+      });
+      expect(info.records, hasLength(2));
+      expect(info.records[0].status, ChainStatus.confirmed);
+      expect(info.records[0].blockNumber, 5000123);
+      expect(info.records[1].status, ChainStatus.failed);
+      expect(info.records[1].holdSeconds, 6.0);
+      expect(info.hasFailed, isTrue);
+      expect(info.hasPending, isFalse);
+    });
 
-    test('Data diubah -> INVALID di blok tersebut', () {
-      final blocks = fixtureBlocks();
-      final b = blocks[1];
-      blocks[1] = ChainBlock(
-        blockIndex: 1,
-        timestamp: b.timestamp,
-        data: {...b.data, 'hold_seconds': 99.9},
-        prevHash: b.prevHash,
-        hash: b.hash,
-        nonce: b.nonce,
-      );
-      final r = ChainHasher.verify(blocks);
-      expect(r.valid, isFalse);
-      expect(r.brokenAt, 1);
-      expect(ChainHasher.blockIntact(blocks[0]), isTrue);
-      expect(ChainHasher.blockIntact(blocks[1]), isFalse);
+    test('GET /chain/verify: ketidakcocokan terbaca', () {
+      final v = ChainVerification.fromJson({
+        'valid': false,
+        'checked': 1,
+        'pending': 2,
+        'failed': 0,
+        'mismatches': [
+          {
+            'attempt_id': 12,
+            'chain_index': 0,
+            'reason': 'data_hash tidak cocok',
+          },
+        ],
+      });
+      expect(v.valid, isFalse);
+      expect(v.pending, 2);
+      expect(v.mismatches.single.chainIndex, 0);
+    });
+
+    test('Status tak dikenal dianggap pending', () {
+      expect(ChainStatus.parse('???'), ChainStatus.pending);
+      expect(ChainStatus.parse(null), ChainStatus.pending);
     });
   });
 
@@ -208,7 +301,7 @@ void main() {
   });
 
   testWidgets(
-    'Steady Challenge: countdown -> stabil 5 dtk -> tercatat di blockchain',
+    'Steady Challenge: countdown -> stabil 5 dtk -> dicatat ke Sepolia (pending)',
     (tester) async {
       final api = _FakeChainApi();
       final accel = StreamController<AccelerometerEvent>.broadcast();
@@ -245,10 +338,10 @@ void main() {
       expect(find.text('Berhasil!'), findsOneWidget);
       expect(api.submits, 1);
       await tester.scrollUntilVisible(
-        find.textContaining('Tercatat di blockchain'),
+        find.textContaining('Dicatat ke blockchain'),
         200,
       );
-      expect(find.text('Tercatat di blockchain ✓ (block #7)'), findsOneWidget);
+      expect(find.text('Dicatat ke blockchain Sepolia…'), findsOneWidget);
     },
   );
 
@@ -283,7 +376,7 @@ void main() {
   });
 
   testWidgets(
-    'Chain Explorer: VALID -> manipulasi -> INVALID -> pulihkan -> VALID',
+    'Chain Explorer: VALID -> manipulasi database -> INVALID -> pulihkan -> VALID',
     (tester) async {
       await tester.pumpWidget(
         Provider<ChallengeApi>.value(
@@ -292,20 +385,114 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Block #1'), findsOneWidget);
+      expect(find.text('Catatan #0'), findsOneWidget);
+      expect(find.text('Terkonfirmasi'), findsOneWidget);
+      expect(find.textContaining('0xaaaaaaaa…aaaaaa'), findsOneWidget);
+      expect(find.textContaining('#5000123'), findsOneWidget);
 
       await tester.tap(find.text('Verifikasi Chain'));
       await tester.pumpAndSettle();
       expect(find.text('VALID'), findsOneWidget);
+      expect(
+        find.textContaining('cocok dengan 1 catatan on-chain'),
+        findsOneWidget,
+      );
 
       await tester.tap(find.text('Demo Manipulasi Data'));
       await tester.pumpAndSettle();
       expect(find.text('INVALID'), findsOneWidget);
-      expect(find.textContaining('Blok rusak: #1'), findsOneWidget);
+      expect(find.textContaining('hold_seconds berbeda'), findsWidgets);
 
       await tester.tap(find.text('Pulihkan'));
       await tester.pumpAndSettle();
       expect(find.text('VALID'), findsOneWidget);
     },
   );
+
+  testWidgets('Chain Explorer: "Menunggu konfirmasi" diperbarui otomatis', (
+    tester,
+  ) async {
+    final api = _FakeChainApi(records: [_record(12, ChainStatus.pending)]);
+    await tester.pumpWidget(
+      Provider<ChallengeApi>.value(
+        value: api,
+        child: const MaterialApp(
+          home: ChainExplorerScreen(pollInterval: Duration(seconds: 1)),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Menunggu konfirmasi'), findsOneWidget);
+    expect(find.textContaining('Catatan baru'), findsOneWidget);
+
+    api.confirmOnNextLoad = true; // server sudah melihat transaksi masuk blok
+    await tester.pump(const Duration(seconds: 1)); // poll berjalan
+    await tester.pump();
+    expect(find.text('Menunggu konfirmasi'), findsNothing);
+    expect(find.text('Terkonfirmasi'), findsOneWidget);
+    expect(api.loads, 2);
+
+    await tester.pumpWidget(const SizedBox()); // lepas -> timer poll dibatalkan
+  });
+
+  testWidgets('Chain Explorer: catatan gagal -> alasan tampil, kirim ulang', (
+    tester,
+  ) async {
+    final api = _FakeChainApi(
+      records: [_record(13, ChainStatus.failed, error: 'insufficient funds')],
+    );
+    await tester.pumpWidget(
+      Provider<ChallengeApi>.value(
+        value: api,
+        child: const MaterialApp(
+          home: ChainExplorerScreen(pollInterval: Duration(seconds: 1)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Gagal'), findsOneWidget);
+    expect(find.textContaining('insufficient funds'), findsOneWidget);
+
+    await tester.tap(find.text('Kirim ulang yang gagal'));
+    await tester.pump();
+    await tester.pump();
+    expect(api.retries, 1);
+    expect(find.text('1 catatan dikirim ulang ke Sepolia'), findsOneWidget);
+    expect(find.text('Menunggu konfirmasi'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('Chain Explorer: tombol Etherscan membuka URL transaksi', (
+    tester,
+  ) async {
+    final opened = <Uri>[];
+    await tester.pumpWidget(
+      Provider<ChallengeApi>.value(
+        value: _FakeChainApi(),
+        child: MaterialApp(
+          home: ChainExplorerScreen(
+            opener: (u) async {
+              opened.add(u);
+              return true;
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Buka di Etherscan'));
+    await tester.pump();
+    expect(
+      opened.single.toString(),
+      'https://sepolia.etherscan.io/tx/$_txHash',
+    );
+
+    await tester.tap(find.text('Etherscan'));
+    await tester.pump();
+    expect(
+      opened.last.toString(),
+      'https://sepolia.etherscan.io/address/$_contract',
+    );
+  });
 }

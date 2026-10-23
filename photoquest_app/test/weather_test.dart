@@ -211,21 +211,18 @@ void main() {
       expect(r.data.days, hasLength(7));
     });
 
-    test(
-      'Server memberi estimasi tapi HP punya data asli lama -> pakai data lama, '
-      'bukan "offline" karena server terjangkau',
-      () async {
-        final dao = _MemoryDao()..store['-7.78,110.37'] = sampleJson();
-        final repo = WeatherRepository(
-          _FakeApi(() async => sampleJson(estimate: true)),
-          dao,
-        );
-        final r = await repo.get(-7.78, 110.37);
-        expect(r.data.isEstimate, isFalse);
-        expect(r.fromCache, isFalse);
-        expect(r.cachedAt, isNotNull);
-      },
-    );
+    test('Server memberi estimasi tapi HP punya data asli lama -> pakai data lama, '
+        'bukan "offline" karena server terjangkau', () async {
+      final dao = _MemoryDao()..store['-7.78,110.37'] = sampleJson();
+      final repo = WeatherRepository(
+        _FakeApi(() async => sampleJson(estimate: true)),
+        dao,
+      );
+      final r = await repo.get(-7.78, 110.37);
+      expect(r.data.isEstimate, isFalse);
+      expect(r.fromCache, isFalse);
+      expect(r.cachedAt, isNotNull);
+    });
   });
 
   group('WeatherSourceChip: label sesuai kondisi sebenarnya', () {
@@ -312,24 +309,26 @@ void main() {
       expect(info.hourly[1].precipitationProbability, 0); // null -> 0
     });
 
-    test('Server memberi estimasi -> HP ambil langsung, hasil Live & disimpan',
-        () async {
-      final dao = _MemoryDao();
-      final direct = _FakeDirect(() async => openMeteoRaw());
-      final repo = WeatherRepository(
-        _FakeApi(() async => sampleJson(estimate: true)),
-        dao,
-        direct: direct,
-        now: () => DateTime.utc(2026, 10, 4, 8),
-      );
-      final r = await repo.get(-7.78, 110.37);
-      expect(direct.calls, 1);
-      expect(r.data.isEstimate, isFalse);
-      expect(r.data.source, 'live');
-      expect(r.fromCache, isFalse);
-      expect(r.cachedAt, isNull);
-      expect(dao.store.keys, ['-7.78,110.37']);
-    });
+    test(
+      'Server memberi estimasi -> HP ambil langsung, hasil Live & disimpan',
+      () async {
+        final dao = _MemoryDao();
+        final direct = _FakeDirect(() async => openMeteoRaw());
+        final repo = WeatherRepository(
+          _FakeApi(() async => sampleJson(estimate: true)),
+          dao,
+          direct: direct,
+          now: () => DateTime.utc(2026, 10, 4, 8),
+        );
+        final r = await repo.get(-7.78, 110.37);
+        expect(direct.calls, 1);
+        expect(r.data.isEstimate, isFalse);
+        expect(r.data.source, 'live');
+        expect(r.fromCache, isFalse);
+        expect(r.cachedAt, isNull);
+        expect(dao.store.keys, ['-7.78,110.37']);
+      },
+    );
 
     test('Server tak terjangkau tapi internet HP ada -> tetap Live', () async {
       final repo = WeatherRepository(
@@ -354,41 +353,52 @@ void main() {
       expect(direct.calls, 0);
     });
 
-    test('Server estimasi + Open-Meteo HP gagal + tanpa cache -> estimasi server',
-        () async {
-      final repo = WeatherRepository(
-        _FakeApi(() async => sampleJson(estimate: true)),
-        _MemoryDao(),
-        direct: _FakeDirect(() => throw Exception('429')),
-      );
-      final r = await repo.get(-7.78, 110.37);
-      expect(r.data.isEstimate, isTrue);
-      expect(r.fromCache, isFalse);
-    });
+    test(
+      'Server estimasi + Open-Meteo HP gagal + tanpa cache -> estimasi server',
+      () async {
+        final repo = WeatherRepository(
+          _FakeApi(() async => sampleJson(estimate: true)),
+          _MemoryDao(),
+          direct: _FakeDirect(() => throw Exception('429')),
+        );
+        final r = await repo.get(-7.78, 110.37);
+        expect(r.data.isEstimate, isTrue);
+        expect(r.fromCache, isFalse);
+      },
+    );
 
-    test('Semua gagal (offline sungguhan) + ada cache -> Offline (cache)',
-        () async {
-      final dao = _MemoryDao()..store['-7.78,110.37'] = sampleJson();
-      final repo = WeatherRepository(
-        _FakeApi(() => throw _offline),
-        dao,
-        direct: _FakeDirect(() => throw Exception('no internet')),
-      );
-      final r = await repo.get(-7.78, 110.37);
-      expect(r.fromCache, isTrue);
-      expect(r.data.isEstimate, isFalse);
-    });
+    test(
+      'Semua gagal (offline sungguhan) + ada cache -> Offline (cache)',
+      () async {
+        final dao = _MemoryDao()..store['-7.78,110.37'] = sampleJson();
+        final repo = WeatherRepository(
+          _FakeApi(() => throw _offline),
+          dao,
+          direct: _FakeDirect(() => throw Exception('no internet')),
+        );
+        final r = await repo.get(-7.78, 110.37);
+        expect(r.fromCache, isTrue);
+        expect(r.data.isEstimate, isFalse);
+      },
+    );
 
-    test('Error server non-jaringan (mis. 401) tetap dilempar, tanpa fallback',
-        () async {
-      final direct = _FakeDirect(() async => openMeteoRaw());
-      final repo = WeatherRepository(
-        _FakeApi(() => throw const ApiException('Sesi habis', statusCode: 401)),
-        _MemoryDao(),
-        direct: direct,
-      );
-      await expectLater(repo.get(-7.78, 110.37), throwsA(isA<ApiException>()));
-      expect(direct.calls, 0);
-    });
+    test(
+      'Error server non-jaringan (mis. 401) tetap dilempar, tanpa fallback',
+      () async {
+        final direct = _FakeDirect(() async => openMeteoRaw());
+        final repo = WeatherRepository(
+          _FakeApi(
+            () => throw const ApiException('Sesi habis', statusCode: 401),
+          ),
+          _MemoryDao(),
+          direct: direct,
+        );
+        await expectLater(
+          repo.get(-7.78, 110.37),
+          throwsA(isA<ApiException>()),
+        );
+        expect(direct.calls, 0);
+      },
+    );
   });
 }

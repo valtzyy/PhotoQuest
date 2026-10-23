@@ -84,7 +84,8 @@ Map<String, dynamic> openMeteoToWeatherJson(
   Map<String, dynamic> raw,
   DateTime now,
 ) {
-  final offset = (raw['utc_offset_seconds'] as num?)?.toInt() ?? _wibOffsetSeconds;
+  final offset =
+      (raw['utc_offset_seconds'] as num?)?.toInt() ?? _wibOffsetSeconds;
   final daily = raw['daily'] as Map<String, dynamic>;
   final hourly = raw['hourly'] as Map<String, dynamic>;
 

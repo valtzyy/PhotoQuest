@@ -1,23 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/formatters.dart';
 import '../../core/pq_colors.dart';
-import '../../data/models/chain_block.dart';
+import '../../data/models/chain_record.dart';
 import '../../data/remote/challenge_api.dart';
 import '../../providers/chain_provider.dart';
+import '../widgets/glass/glass_panel.dart';
+import '../widgets/glass/glass_pill.dart';
 import '../widgets/glass/pq_background.dart';
 import '../widgets/state_views.dart';
 
-/// Chain Explorer: daftar blok, verifikasi chain, dan demo manipulasi data.
+/// Pembuka tautan eksternal (diganti di tes).
+typedef UrlOpener = Future<bool> Function(Uri url);
+
+Future<bool> _defaultOpener(Uri url) =>
+    launchUrl(url, mode: LaunchMode.externalApplication);
+
+/// Chain Explorer: transaksi Steady Challenge di blockchain Ethereum Sepolia,
+/// verifikasi terhadap data on-chain, dan demo manipulasi data.
 class ChainExplorerScreen extends StatelessWidget {
-  const ChainExplorerScreen({super.key});
+  const ChainExplorerScreen({
+    super.key,
+    this.opener = _defaultOpener,
+    this.pollInterval = const Duration(seconds: 12),
+  });
+
+  final UrlOpener opener;
+
+  /// Jeda muat ulang otomatis selama ada transaksi menunggu konfirmasi.
+  final Duration pollInterval;
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (ctx) => ChainProvider(ctx.read<ChallengeApi>())..load(),
-      child: const _ExplorerView(),
+      create: (ctx) =>
+          ChainProvider(ctx.read<ChallengeApi>(), pollInterval: pollInterval)
+            ..load(),
+      child: _ExplorerView(opener: opener),
     );
   }
 }
@@ -26,8 +47,25 @@ String _short(String hash) => hash.length <= 16
     ? hash
     : '${hash.substring(0, 10)}…${hash.substring(hash.length - 6)}';
 
+Future<void> _open(BuildContext context, UrlOpener opener, String url) async {
+  final messenger = ScaffoldMessenger.of(context);
+  var opened = false;
+  try {
+    opened = await opener(Uri.parse(url));
+  } catch (_) {
+    opened = false;
+  }
+  if (!opened) {
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Tidak dapat membuka tautan')),
+    );
+  }
+}
+
 class _ExplorerView extends StatelessWidget {
-  const _ExplorerView();
+  const _ExplorerView({required this.opener});
+
+  final UrlOpener opener;
 
   @override
   Widget build(BuildContext context) {
@@ -58,60 +96,93 @@ class _ExplorerView extends StatelessWidget {
                 ),
               );
             }
-            return ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                Text(
-                  '${info.blocks.length} blok · proof-of-work: hash diawali '
-                  '"${'0' * info.difficulty}" · SHA-256',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const SizedBox(height: 8),
-                FilledButton.icon(
-                  onPressed: p.busy ? null : p.verify,
-                  icon: p.busy
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.verified_user),
-                  label: const Text('Verifikasi Chain'),
-                ),
-                if (p.serverResult != null) ...[
+            return RefreshIndicator(
+              onRefresh: p.load,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
+                children: [
+                  _NetworkPanel(info: info, opener: opener),
                   const SizedBox(height: 8),
-                  _VerifyBanner(server: p.serverResult!, local: p.localResult),
-                ],
-                if (info.demoMode) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: p.busy ? null : p.tamper,
-                          icon: const Icon(Icons.edit_note),
-                          label: const Text('Demo Manipulasi Data'),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: p.busy ? null : p.repair,
-                          icon: const Icon(Icons.restore),
-                          label: const Text('Pulihkan'),
-                        ),
-                      ),
-                    ],
+                  FilledButton.icon(
+                    onPressed: p.busy ? null : p.verify,
+                    icon: p.busy
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.verified_user),
+                    label: const Text('Verifikasi Chain'),
                   ),
+                  if (p.verification != null) ...[
+                    const SizedBox(height: 8),
+                    _VerifyBanner(result: p.verification!),
+                  ] else if (p.verifyError != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      p.verifyError!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ],
+                  if (info.hasFailed) ...[
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: p.busy
+                          ? null
+                          : () async {
+                              final messenger = ScaffoldMessenger.of(context);
+                              final msg = await p.retry();
+                              messenger.showSnackBar(
+                                SnackBar(content: Text(msg)),
+                              );
+                            },
+                      icon: const Icon(Icons.replay),
+                      label: const Text('Kirim ulang yang gagal'),
+                    ),
+                  ],
+                  if (info.demoMode) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: p.busy ? null : p.tamper,
+                            icon: const Icon(Icons.edit_note),
+                            label: const Text('Demo Manipulasi Data'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: p.busy ? null : p.repair,
+                            icon: const Icon(Icons.restore),
+                            label: const Text('Pulihkan'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  if (info.records.isEmpty)
+                    const EmptyView(
+                      message:
+                          'Belum ada catatan. Menangkan Steady Challenge untuk '
+                          'mencatat hasilnya di blockchain Sepolia.',
+                    ),
+                  for (final r in info.records)
+                    _RecordCard(
+                      record: r,
+                      opener: opener,
+                      mismatch: p.verification?.mismatches
+                          .where((m) => m.attemptId == r.attemptId)
+                          .firstOrNull,
+                    ),
                 ],
-                const SizedBox(height: 12),
-                // Blok terbaru di atas
-                for (final b in info.blocks.reversed)
-                  _BlockCard(
-                    block: b,
-                    broken: p.serverResult?.brokenAt == b.blockIndex,
-                  ),
-              ],
+              ),
             );
           },
         ),
@@ -120,17 +191,89 @@ class _ExplorerView extends StatelessWidget {
   }
 }
 
-/// Status VALID (hijau) / INVALID (merah) dari server, plus hasil cek ulang di HP.
-class _VerifyBanner extends StatelessWidget {
-  const _VerifyBanner({required this.server, this.local});
+/// Info jaringan dan kontrak (alamat dipendekkan, tap untuk buka di Etherscan).
+class _NetworkPanel extends StatelessWidget {
+  const _NetworkPanel({required this.info, required this.opener});
 
-  final ChainVerification server;
-  final ChainVerification? local;
+  final ChainInfo info;
+  final UrlOpener opener;
 
   @override
   Widget build(BuildContext context) {
-    final valid = server.valid;
+    final theme = Theme.of(context);
+    final address = info.contractAddress;
+    return GlassPanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Ethereum Sepolia (testnet)',
+                  style: theme.textTheme.titleMedium,
+                ),
+              ),
+              GlassPill(
+                label: info.configured ? 'Terhubung' : 'Belum dikonfigurasi',
+                tone: info.configured ? GlassTone.green : GlassTone.red,
+                icon: info.configured ? Icons.link : Icons.link_off,
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${info.records.length} transaksi · hash data keccak256 · '
+            'dicatat oleh smart contract ChallengeRegistry',
+            style: theme.textTheme.bodySmall,
+          ),
+          if (address != null) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'kontrak  ${_short(address)}',
+                    style: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+                if (info.contractUrl != null)
+                  TextButton.icon(
+                    onPressed: () => _open(context, opener, info.contractUrl!),
+                    icon: const Icon(Icons.open_in_new, size: 16),
+                    label: const Text('Etherscan'),
+                  ),
+              ],
+            ),
+          ],
+          if (!info.configured) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Server belum diberi RPC, kunci, atau alamat kontrak. Hasil challenge '
+              'tetap tersimpan dan dikirim ulang setelah dikonfigurasi.',
+              style: theme.textTheme.bodySmall,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// VALID (hijau) bila data database cocok dengan catatan on-chain, INVALID (merah) bila tidak.
+class _VerifyBanner extends StatelessWidget {
+  const _VerifyBanner({required this.result});
+
+  final ChainVerification result;
+
+  @override
+  Widget build(BuildContext context) {
+    final valid = result.valid;
     final color = valid ? PqPalette.success : PqPalette.danger;
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -159,42 +302,71 @@ class _VerifyBanner extends StatelessWidget {
               ),
             ],
           ),
-          if (!valid) ...[
-            const SizedBox(height: 4),
-            Text(
-              'Blok rusak: #${server.brokenAt} — ${server.reason}',
-              textAlign: TextAlign.center,
+          const SizedBox(height: 4),
+          Text(
+            valid
+                ? 'Data database cocok dengan ${result.checked} catatan on-chain.'
+                : '${result.mismatches.length} catatan tidak cocok dengan data on-chain '
+                      '(on-chain tidak bisa diubah).',
+            textAlign: TextAlign.center,
+          ),
+          for (final m in result.mismatches)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                'Catatan #${m.chainIndex}: ${m.reason}',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall,
+              ),
             ),
-          ],
-          if (local != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              'Cek ulang di HP (SHA-256 lokal): ${local!.valid ? 'VALID' : 'INVALID di blok #${local!.brokenAt}'}',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall,
+          if (result.pending > 0 || result.failed > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                '${result.pending} menunggu konfirmasi, ${result.failed} gagal '
+                '(belum ikut dibandingkan).',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall,
+              ),
             ),
-          ],
         ],
       ),
     );
   }
 }
 
-class _BlockCard extends StatelessWidget {
-  const _BlockCard({required this.block, required this.broken});
+class _RecordCard extends StatelessWidget {
+  const _RecordCard({
+    required this.record,
+    required this.opener,
+    this.mismatch,
+  });
 
-  final ChainBlock block;
-  final bool broken;
+  final ChainRecord record;
+  final UrlOpener opener;
+
+  /// Non-null bila verifikasi terakhir menemukan data tidak cocok untuk catatan ini.
+  final ChainMismatch? mismatch;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final intact = ChainHasher.blockIntact(block); // dihitung ulang di HP
-    final d = block.data;
-    final summary = block.isGenesis
-        ? 'Genesis block'
-        : 'Steady Shot · user #${d['user_id']} · tahan ${d['hold_seconds']} dtk · '
-              'miring ${d['avg_tilt']}° · getar ${d['avg_shake']}';
+    final r = record;
+    final broken = mismatch != null;
+    final (label, tone, icon) = switch (r.status) {
+      ChainStatus.confirmed => (
+        'Terkonfirmasi',
+        GlassTone.green,
+        Icons.check_circle,
+      ),
+      ChainStatus.failed => ('Gagal', GlassTone.red, Icons.error),
+      ChainStatus.pending => (
+        'Menunggu konfirmasi',
+        GlassTone.yellow,
+        Icons.hourglass_top,
+      ),
+    };
+    final time = r.confirmedAt ?? r.createdAt;
 
     return Card(
       shape: broken
@@ -210,25 +382,53 @@ class _BlockCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Text(
-                  'Block #${block.blockIndex}',
-                  style: theme.textTheme.titleMedium,
+                Expanded(
+                  child: Text(
+                    r.chainIndex == null
+                        ? 'Catatan baru (percobaan #${r.attemptId})'
+                        : 'Catatan #${r.chainIndex}',
+                    style: theme.textTheme.titleMedium,
+                  ),
                 ),
-                const Spacer(),
-                Icon(
-                  intact ? Icons.check_circle : Icons.error,
-                  color: intact ? PqPalette.success : PqPalette.danger,
-                  size: 20,
-                ),
+                GlassPill(label: label, tone: tone, icon: icon),
               ],
             ),
-            Text(Formatters.dateTime(DateTime.parse(block.timestamp))),
+            Text(Formatters.dateTime(time)),
             const SizedBox(height: 4),
-            Text(summary),
+            Text(
+              'Steady Shot · user #${r.userId} · tahan ${r.holdSeconds} dtk · '
+              'miring ${r.avgTilt}° · getar ${r.avgShake}',
+            ),
+            if (broken || r.tampered) ...[
+              const SizedBox(height: 4),
+              Text(
+                broken
+                    ? 'Data database tidak cocok dengan on-chain: ${mismatch!.reason}'
+                    : 'Data database sedang dimanipulasi (demo).',
+                style: const TextStyle(color: PqPalette.danger),
+              ),
+            ],
+            if (r.status == ChainStatus.failed && r.error != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Alasan: ${r.error}',
+                style: TextStyle(color: theme.colorScheme.error),
+              ),
+            ],
             const SizedBox(height: 4),
-            _mono('hash     ${_short(block.hash)}'),
-            _mono('prev     ${_short(block.prevHash)}'),
-            _mono('nonce    ${block.nonce}'),
+            _mono('tx      ${r.txHash == null ? '-' : _short(r.txHash!)}'),
+            _mono(
+              'blok    ${r.blockNumber == null ? '-' : '#${r.blockNumber}'}',
+            ),
+            if (r.explorerUrl != null)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () => _open(context, opener, r.explorerUrl!),
+                  icon: const Icon(Icons.open_in_new, size: 16),
+                  label: const Text('Buka di Etherscan'),
+                ),
+              ),
           ],
         ),
       ),
