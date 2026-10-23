@@ -28,5 +28,11 @@ services:
         value: "8000"
       - key: LLM_TOTAL_TIMEOUT_MS
         value: "12000"
+      - key: SEPOLIA_RPC_URL # RPC Sepolia (Alchemy/Infura); mengandung kunci API
+        sync: false
+      - key: ETH_PRIVATE_KEY # private key wallet relayer KHUSUS testnet
+        sync: false
+      - key: CHAIN_CONTRACT_ADDRESS # alamat kontrak ChallengeRegistry di Sepolia
+        sync: false
       - key: DEMO_MODE
         value: "true"

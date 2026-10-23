@@ -18,6 +18,12 @@ const config = {
   // Anggaran waktu total semua percobaan LLM (model utama + cadangan).
   llmTotalTimeoutMs: Number(process.env.LLM_TOTAL_TIMEOUT_MS) || 12000,
   demoMode: process.env.DEMO_MODE === 'true',
+  // Blockchain Ethereum Sepolia (relayer). Semuanya opsional: bila kosong, hasil challenge
+  // tetap tersimpan dan status pencatatan on-chain = failed (bisa dicoba ulang).
+  // SEPOLIA_RPC_URL dan ETH_PRIVATE_KEY adalah RAHASIA: jangan di-log atau di-commit.
+  sepoliaRpcUrl: process.env.SEPOLIA_RPC_URL || '',
+  ethPrivateKey: process.env.ETH_PRIVATE_KEY || '',
+  chainContractAddress: process.env.CHAIN_CONTRACT_ADDRESS || '',
 };
 
 // Gagal cepat jika variabel wajib belum diisi, supaya error-nya jelas.

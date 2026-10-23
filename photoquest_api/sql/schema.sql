@@ -70,29 +70,29 @@ CREATE TABLE photo_sessions (
   created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Hasil mini-game Steady Shot Challenge
+-- Hasil mini-game Steady Shot Challenge.
+-- Percobaan yang BERHASIL juga dicatat ke blockchain publik (Ethereum Sepolia) lewat
+-- smart contract ChallengeRegistry. Kolom tx_* melacak transaksi tersebut:
+--   tx_status: NULL (tidak dicatat, mis. percobaan gagal) | pending | confirmed | failed
 CREATE TABLE challenge_attempts (
-  id           SERIAL PRIMARY KEY,
-  user_id      INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  success      BOOLEAN NOT NULL,
-  hold_seconds NUMERIC(5,2) NOT NULL,
-  avg_tilt     NUMERIC(6,3) NOT NULL,
-  avg_shake    NUMERIC(6,3) NOT NULL,
-  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id            SERIAL PRIMARY KEY,
+  user_id       INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  success       BOOLEAN NOT NULL,
+  hold_seconds  NUMERIC(5,2) NOT NULL,
+  avg_tilt      NUMERIC(6,3) NOT NULL,
+  avg_shake     NUMERIC(6,3) NOT NULL,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  data_hash     VARCHAR(66),                -- keccak256 data kanonik (sama dengan yang di on-chain)
+  tx_hash       VARCHAR(66),                -- hash transaksi Sepolia
+  tx_status     VARCHAR(10) CHECK (tx_status IN ('pending','confirmed','failed')),
+  tx_error      TEXT,                       -- alasan singkat bila failed (tanpa rahasia)
+  tx_sent_at    TIMESTAMPTZ,                -- kapan transaksi dikirim ke jaringan
+  chain_index   INT,                        -- indeks catatan di kontrak (recordCount saat dicatat)
+  block_number  BIGINT,                     -- nomor blok Sepolia
+  confirmed_at  TIMESTAMPTZ,
+  demo_original JSONB                       -- data asli saat demo manipulasi (DEMO_MODE) aktif
 );
-
--- Blockchain sederhana (hash chain). Genesis block dibuat otomatis oleh chainService.
--- Catatan: JSONB menyusun ulang urutan key, jadi hash dihitung dari JSON yang
--- di-serialisasi secara kanonik (key diurutkan) agar verifikasi konsisten.
-CREATE TABLE chain_blocks (
-  id          SERIAL PRIMARY KEY,
-  block_index INT  NOT NULL UNIQUE,
-  timestamp   TIMESTAMPTZ NOT NULL,
-  data        JSONB NOT NULL,
-  prev_hash   TEXT NOT NULL,
-  hash        TEXT NOT NULL,
-  nonce       INT  NOT NULL
-);
+CREATE INDEX challenge_attempts_tx_status_idx ON challenge_attempts (tx_status);
 
 -- Saran & Kesan mata kuliah Pemrograman Aplikasi Mobile
 CREATE TABLE feedback (

@@ -1,5 +1,5 @@
 // Route Steady Shot Challenge: riwayat dan pengiriman hasil.
-// Hasil yang BERHASIL dicatat sebagai blok baru di blockchain (chainService).
+// Hasil yang BERHASIL dicatat ke blockchain publik Sepolia (chainService) di latar belakang.
 const express = require('express');
 
 const db = require('../db');
@@ -64,21 +64,23 @@ router.post('/', async (req, res) => {
     avg_shake: Number(rows[0].avg_shake),
   };
 
-  // Hanya percobaan yang berhasil yang masuk blockchain.
-  let block = null;
+  // Hanya percobaan yang berhasil dicatat on-chain. Transaksi butuh 12-30 detik, jadi hanya
+  // ditandai pending di sini; pengiriman berjalan di latar belakang (status lewat GET /chain).
+  let chain = null;
   if (success) {
-    const added = await chainService.addBlock({
-      type: 'steady_shot',
-      attempt_id: attempt.id,
-      user_id: req.user.id,
-      hold_seconds: values.hold,
-      avg_tilt: values.tilt,
-      avg_shake: values.shake,
-    });
-    block = { block_index: added.block_index, hash: added.hash };
+    try {
+      chain = await chainService.enqueueAttempt({ ...attempt, user_id: req.user.id });
+    } catch (err) {
+      console.error('[chain] gagal menandai pending:', chainService.sanitizeError(err));
+    }
   }
 
-  return ok(res, { attempt, block }, success ? 'Berhasil! Tercatat di blockchain' : 'Hasil disimpan', 201);
+  return ok(
+    res,
+    { attempt, chain },
+    success ? 'Berhasil! Pencatatan ke blockchain sedang diproses' : 'Hasil disimpan',
+    201
+  );
 });
 
 module.exports = router;

@@ -6,4 +6,6 @@ const app = require('./app');
 app.listen(config.port, '0.0.0.0', () => {
   console.log(`PhotoQuest API berjalan di http://0.0.0.0:${config.port}`);
   console.log(`DEMO_MODE = ${config.demoMode}`);
+  const chainReady = config.sepoliaRpcUrl && config.ethPrivateKey && config.chainContractAddress;
+  console.log(`Blockchain Sepolia: ${chainReady ? `aktif (kontrak ${config.chainContractAddress})` : 'BELUM dikonfigurasi (pencatatan on-chain = failed)'}`);
 });
