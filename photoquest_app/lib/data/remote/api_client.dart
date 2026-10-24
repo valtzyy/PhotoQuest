@@ -10,6 +10,7 @@ import 'api_exception.dart';
 /// - Interceptor menambahkan header `Authorization: Bearer <JWT>` otomatis.
 /// - Interceptor memanggil [onUnauthorized] bila server membalas 401
 ///   (token kedaluwarsa/tidak valid) -> aplikasi logout otomatis.
+/// - Interceptor memanggil [onServerReachable] pada setiap balasan server.
 class ApiClient {
   ApiClient(this._store)
     : dio = Dio(
@@ -29,6 +30,11 @@ class ApiClient {
             options.headers['Authorization'] = 'Bearer $token';
           }
           handler.next(options);
+        },
+        onResponse: (response, handler) {
+          // Ada balasan dari server -> tidak lagi offline.
+          onServerReachable?.call();
+          handler.next(response);
         },
         onError: (error, handler) {
           final path = error.requestOptions.path;
@@ -50,6 +56,10 @@ class ApiClient {
 
   /// Diisi oleh AuthProvider: aksi logout otomatis saat respons 401.
   void Function()? onUnauthorized;
+
+  /// Diisi oleh AuthProvider: dipanggil setiap ada balasan dari server
+  /// (menghapus status "Mode offline" setelah koneksi kembali).
+  void Function()? onServerReachable;
 
   /// Helper: jalankan request dan kembalikan field `data` dari
   /// `{ success, data, message }`. Semua DioException diubah jadi [ApiException].

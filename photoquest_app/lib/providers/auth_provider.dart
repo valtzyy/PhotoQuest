@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../data/models/user.dart';
@@ -9,10 +11,21 @@ enum AuthStatus { unknown, authenticated, unauthenticated }
 
 /// State autentikasi aplikasi: user aktif, status login, mode offline, biometrik.
 class AuthProvider extends ChangeNotifier {
-  AuthProvider(this._repo, this._biometric, ApiClient client) {
+  AuthProvider(
+    this._repo,
+    this._biometric,
+    ApiClient client, {
+    this.offlineRecheckInterval = const Duration(seconds: 15),
+  }) {
     // Interceptor dio memanggil ini setiap kali server membalas 401.
     client.onUnauthorized = _handleUnauthorized;
+    // ...dan ini setiap kali server membalas apa pun (koneksi sudah kembali).
+    client.onServerReachable = _markOnline;
   }
+
+  /// Jeda pengecekan ulang koneksi selama session berjalan dalam mode offline.
+  final Duration offlineRecheckInterval;
+  Timer? _recheckTimer;
 
   final AuthRepository _repo;
   final BiometricService _biometric;
@@ -55,6 +68,8 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    _recheckTimer?.cancel();
+    _recheckTimer = null;
     await _repo.logout();
     user = null;
     isOffline = false;
@@ -72,9 +87,47 @@ class AuthProvider extends ChangeNotifier {
   void _setLoggedIn(User u, {bool offline = false}) {
     user = u;
     isOffline = offline;
+    _scheduleRecheck();
     status = AuthStatus.authenticated;
     _expiring = false;
     notifyListeners();
+  }
+
+  void _markOnline() {
+    if (!isOffline) return;
+    isOffline = false;
+    _recheckTimer?.cancel();
+    _recheckTimer = null;
+    notifyListeners();
+  }
+
+  /// Selama offline, cek server berkala (GET /auth/me). Begitu ada balasan,
+  /// interceptor memanggil [_markOnline] sehingga banner offline hilang.
+  void _scheduleRecheck() {
+    _recheckTimer?.cancel();
+    _recheckTimer = null;
+    if (!isOffline) return;
+    _recheckTimer = Timer(offlineRecheckInterval, () async {
+      _recheckTimer = null;
+      await recheckConnection();
+      if (isOffline && status == AuthStatus.authenticated) _scheduleRecheck();
+    });
+  }
+
+  /// Cek koneksi sekarang (dipakai tarik-untuk-refresh di Home).
+  Future<void> recheckConnection() async {
+    if (!isOffline) return;
+    final result = await _repo.restoreSession();
+    if (result.status == RestoreStatus.online && result.user != null) {
+      user = result.user;
+      _markOnline();
+    }
+  }
+
+  @override
+  void dispose() {
+    _recheckTimer?.cancel();
+    super.dispose();
   }
 
   /// Logout otomatis karena token ditolak server (kedaluwarsa / tidak valid).

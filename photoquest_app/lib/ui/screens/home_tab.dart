@@ -97,11 +97,14 @@ class HomeTab extends StatelessWidget {
   Future<void> _refresh(BuildContext context) {
     final point =
         context.read<LocationProvider>().position ?? LocationProvider.demoPoint;
-    return context.read<WeatherProvider>().load(
-      point.latitude,
-      point.longitude,
-      force: true,
-    );
+    return Future.wait([
+      context.read<AuthProvider>().recheckConnection(),
+      context.read<WeatherProvider>().load(
+        point.latitude,
+        point.longitude,
+        force: true,
+      ),
+    ]);
   }
 
   @override
