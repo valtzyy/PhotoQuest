@@ -40,6 +40,18 @@ Semua layanan di bawah memakai paket gratis. Repo harus sudah di-push ke GitHub.
 > ```
 > Skrip ini hanya menambah kolom dan mengisi foto; data lain tidak disentuh.
 
+### Migrasi blockchain (untuk database yang sudah berisi data)
+Menambah kolom `tx_*` pada `challenge_attempts` tanpa menghapus data (idempoten, aman diulang).
+PowerShell, dari `photoquest_api`, pakai host koneksi **langsung** (bukan `-pooler`):
+```powershell
+$env:DATABASE_URL = (Get-Content .env.neon | Where-Object { $_ -like 'DATABASE_URL=*' }).Substring(13).Replace('-pooler','')
+npm run db:migrate
+Remove-Item Env:DATABASE_URL
+```
+Baris `Target database:` harus menampilkan host Neon. Tabel lama `chain_blocks` tidak dihapus;
+hapus manual (`DROP TABLE chain_blocks;`) bila sudah tidak diperlukan. Panduan wallet, faucet,
+RPC, dan deploy kontrak ada di `BLOCKCHAIN_SETUP.md`.
+
 > ⚠️ `npm run db:init` **menghapus semua tabel** lalu membuat ulang. Jangan dijalankan lagi
 > setelah ada data yang ingin disimpan.
 
@@ -52,6 +64,11 @@ Semua layanan di bawah memakai paket gratis. Repo harus sudah di-push ke GitHub.
    |---|---|
    | `DATABASE_URL` | connection string Neon dari langkah 1.3 |
    | `GEMINI_API_KEY` | API key dari Google AI Studio (boleh kosong → fitur AI memakai template) |
+   | `SEPOLIA_RPC_URL` | URL RPC Sepolia (Alchemy/Infura), **rahasia** karena memuat kunci API |
+   | `ETH_PRIVATE_KEY` | Private key wallet relayer **khusus testnet** (lihat `BLOCKCHAIN_SETUP.md`) |
+   | `CHAIN_CONTRACT_ADDRESS` | Alamat kontrak `ChallengeRegistry` hasil deploy |
+
+   Ketiga variabel blockchain boleh kosong: hasil challenge tetap tersimpan, status pencatatan on-chain `failed`.
 
    `JWT_SECRET` dibuat acak otomatis. `GEMINI_MODEL`, `DEMO_MODE`, dll. sudah terisi
    dan bisa diubah di **Environment**. `GEMINI_FALLBACK_MODELS` berisi model cadangan
@@ -112,3 +129,5 @@ Tanpa `--split-per-abi` hasilnya satu APK universal (±58 MB) yang bisa dipasang
 - [ ] HP: Setelan → Aplikasi → PhotoQuest → Baterai **Tanpa batasan** (notifikasi tepat waktu)
 - [ ] Jika tidak di Yogyakarta: Peta Terdekat → aktifkan **lokasi demo**
 - [ ] `DEMO_MODE=true` jika ingin menampilkan demo manipulasi blockchain
+- [ ] Chain Explorer menampilkan pil **Terhubung** (3 variabel blockchain terisi di Render) dan wallet relayer masih punya ETH Sepolia
+- [ ] Migrasi `npm run db:migrate` sudah dijalankan ke Neon (lihat bagian Migrasi blockchain)

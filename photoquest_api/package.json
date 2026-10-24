@@ -13,6 +13,8 @@
     "db:init": "node scripts/initDb.js",
     "db:images": "node scripts/setSpotImages.js",
     "db:migrate": "node scripts/migrate.js",
+    "chain:deploy": "node scripts/chainDeploy.js",
+    "chain:status": "node scripts/chainStatus.js",
     "llm:check": "node scripts/checkLlm.js",
     "test": "node --test \"test/**/*.test.js\""
   },

@@ -6,13 +6,14 @@ Tugas akhir mata kuliah Pemrograman Aplikasi Mobile.
 Aplikasi pendamping fotografer pemula: menemukan spot foto di Yogyakarta dan spot terdekat,
 melihat cuaca & jendela golden hour, mendapat skor kondisi pemotretan + rekomendasi AI,
 bertanya ke asisten fotografi (LLM), alat bantu level & stabilitas dari sensor HP, serta
-mini-game Steady Shot yang hasilnya dicatat di blockchain sederhana.
+mini-game Steady Shot yang hasilnya dicatat di blockchain publik (Ethereum Sepolia testnet).
 
 | Folder | Isi |
 |---|---|
 | `photoquest_app/` | Aplikasi Flutter (Android, minSdk 24) |
 | `photoquest_api/` | Backend REST API (Node.js 22 + Express 5 + PostgreSQL) |
 | `render.yaml`, `DEPLOY.md` | Konfigurasi & panduan deploy (Render + Neon) |
+| `BLOCKCHAIN_SETUP.md` | Panduan wallet, faucet, RPC, dan deploy smart contract (Sepolia) |
 
 ---
 
@@ -22,11 +23,12 @@ mini-game Steady Shot yang hasilnya dicatat di blockchain sederhana.
 ```bash
 cd photoquest_api
 npm install
-cp .env.example .env      # isi DATABASE_URL, JWT_SECRET, (opsional) GEMINI_API_KEY & GEMINI_MODEL
+cp .env.example .env      # isi DATABASE_URL, JWT_SECRET, (opsional) GEMINI_*, SEPOLIA_RPC_URL, ETH_PRIVATE_KEY, CHAIN_CONTRACT_ADDRESS
 npm run db:init           # buat tabel + data seed (MENGHAPUS data lama)
 npm run dev               # server di port 3000, auto-restart saat file berubah
 npm run llm:check         # (opsional) cek API key & model Gemini
 npm run db:images         # (opsional) isi/perbarui foto spot di DB yang sudah ada tanpa menghapus data
+npm run db:migrate        # (DB yang sudah berisi data) tambah kolom blockchain tanpa menghapus data
 ```
 Cek: `http://localhost:3000/health`. Akun demo hasil seed: `demo@photoquest.app` / `demo123`.
 
@@ -65,7 +67,7 @@ Lihat **[DEPLOY.md](DEPLOY.md)**.
 | 13 | Mini-game | Steady Shot Challenge + PhotoQuiz (offline) | `app/lib/core/steady_challenge.dart`, `app/lib/ui/screens/quiz_screen.dart` |
 | 14 | Search & selection | Pencarian spot, filter kategori, pilih spot untuk Plan | `app/lib/ui/screens/explore_screen.dart`, `app/lib/ui/widgets/spot_picker_sheet.dart` |
 | 15 | Notifikasi | Pengingat 30 menit sebelum rencana + uji 10 detik | `app/lib/services/notification_service.dart` |
-| 16 | Blockchain sederhana | SHA-256 hash chain + proof-of-work, verifikasi (server & HP), demo tamper | `api/src/services/chainService.js`, `app/lib/ui/screens/chain_explorer_screen.dart` |
+| 16 | Blockchain | Blockchain publik Ethereum Sepolia (testnet): smart contract Solidity `ChallengeRegistry`, backend sebagai relayer (ethers.js), transaksi dicatat di Etherscan, verifikasi data database vs data on-chain, demo manipulasi | `api/src/services/chainService.js`, `app/lib/ui/screens/chain_explorer_screen.dart` |
 
 (`api/` = `photoquest_api/`, `app/` = `photoquest_app/`)
 
@@ -89,8 +91,10 @@ Format respons seragam: `{ success, data, message }`. Semua endpoint membutuhkan
 | POST | `/ai/chat` | Photography Assistant |
 | GET/POST | `/sessions` | Sesi foto tersimpan |
 | GET/POST | `/challenge` | Riwayat / kirim hasil Steady Challenge (sukses → blok baru) |
-| GET | `/chain`, `/chain/verify` | Blok & verifikasi blockchain |
-| POST | `/chain/tamper-demo`, `/chain/repair-demo` | Demo manipulasi (hanya `DEMO_MODE=true`) |
+| GET | `/chain` | Catatan di Sepolia (status, `tx_hash`, URL Etherscan, info kontrak) |
+| GET | `/chain/verify` | Bandingkan data database dengan data on-chain (503 bila Sepolia tak terjangkau) |
+| POST | `/chain/retry` | Kirim ulang catatan yang gagal |
+| POST | `/chain/tamper-demo`, `/chain/repair-demo` | Demo: ubah data di database lalu pulihkan (hanya `DEMO_MODE=true`) |
 | GET | `/currency?base=IDR` | Kurs (cache 6 jam, fallback kurs tetap) |
 | GET | `/gear` | Daftar gear fotografi |
 | GET/POST | `/feedback` | Saran & Kesan dari semua pengguna (hanya nama penulis) / kirim baru |
@@ -98,8 +102,8 @@ Format respons seragam: `{ success, data, message }`. Semua endpoint membutuhkan
 
 ## Pengujian otomatis
 ```bash
-cd photoquest_api && npm test        # 85 tes (tanpa memanggil Gemini/Open-Meteo/Frankfurter asli)
-cd photoquest_app && flutter test    # 74 tes unit & widget
+cd photoquest_api && npm test        # 113 tes (tanpa memanggil Gemini/Open-Meteo/Frankfurter/Sepolia asli)
+cd photoquest_app && flutter test    # 141 tes unit & widget
 cd photoquest_app && flutter analyze
 ```
 Tes backend memakai database di `DATABASE_URL` (user uji dibuat lalu dihapus otomatis).
@@ -120,7 +124,9 @@ Tes backend memakai database di `DATABASE_URL` (user uji dibuat lalu dihapus oto
 | Foto profil | Tabel `user_photos` (bytea) + kolom `users.photo_url` | Disk server Render gratis hilang saat restart |
 | `GET /challenge` | Ditambahkan | Profil wajib menampilkan riwayat challenge |
 | Kurs | Diambil base EUR lalu kurs silang | Base IDR dari Frankfurter dibulatkan (galat ±0,5%) |
-| Hash blockchain | JSON kanonik (key diurutkan) | JSONB PostgreSQL menyusun ulang urutan key |
+| Blockchain | Ethereum Sepolia (testnet) lewat smart contract, bukan tabel di PostgreSQL | Permintaan dosen: blockchain sungguhan; testnet gratis (tanpa nilai uang) |
+| Pencatatan | Asinkron: `POST /challenge` membalas cepat (status `pending`), transaksi dikirim di latar belakang dan status diperbarui saat `GET /chain` | Transaksi butuh 12–30 detik, lebih lama dari timeout aplikasi (8 detik) |
+| Hash data | keccak256 dari JSON kanonik (key diurutkan) | Hash bawaan Ethereum; urutan key harus pasti |
 | Skor awan "portrait" | Ideal 30–80% | Tidak diatur di spesifikasi; awan = cahaya lembut |
 | Pengingat | Waktu rencana − 30 menit; ditolak jika < 30 menit lagi | Notifikasi ke waktu lampau tidak bermakna |
 | Notifikasi | `inexactAllowWhileIdle` | Tanpa izin exact alarm; bisa tertunda sedikit |
@@ -138,3 +144,21 @@ adalah **perkiraan** dan perlu dicek manual.
 - API key (Gemini) & rahasia JWT hanya di `photoquest_api/.env` / dashboard Render, tidak di aplikasi.
 - `.env`, `android/key.properties`, dan `*.jks` ada di `.gitignore`.
 - Password hanya disimpan sebagai hash bcrypt; query SQL selalu berparameter.
+- Blockchain: `ETH_PRIVATE_KEY` (wallet khusus testnet) dan `SEPOLIA_RPC_URL` hanya di `.env` / dashboard Render, tidak di repo, aplikasi, maupun log; pesan error disanitasi.
+
+## Blockchain (Sepolia) dan batasannya
+
+Hasil Steady Challenge yang **berhasil** dicatat ke smart contract `ChallengeRegistry`
+(`photoquest_api/contracts/`). Tiap catatan menyimpan `attemptId`, `userId`, `holdSeconds`×100,
+`avgTilt`×1000, `avgShake`×1000, dan `dataHash` (keccak256). Alur: `POST /challenge` menyimpan ke
+`challenge_attempts` dan membalas cepat → backend mengirim transaksi di latar belakang →
+`GET /chain` memperbarui status (`pending` → `confirmed`/`failed`) dari Sepolia. Chain Explorer di
+aplikasi menampilkan transaksi, status, dan tautan Etherscan; **Verifikasi Chain** membandingkan data
+database dengan data on-chain, jadi manipulasi database (demo) terdeteksi karena on-chain tidak bisa diubah.
+
+Batasan yang jujur:
+- **Testnet**: Sepolia tidak bernilai uang dan dapat berubah/dihentikan oleh komunitas Ethereum; ini bukan mainnet.
+- **Relayer terpusat**: hanya backend (satu wallet pemilik) yang dapat menulis; pengguna tidak menandatangani transaksi sendiri. Yang dijamin tidak bisa diubah adalah catatan setelah ditulis, bukan kejujuran data yang dikirim aplikasi.
+- **Butuh waktu**: transaksi 12–30 detik; status awal `pending`. Bila RPC, saldo, atau konfigurasi bermasalah, hasil challenge tetap tersimpan dan statusnya `failed` (dapat dikirim ulang lewat Chain Explorer / `POST /chain/retry`).
+- **Privasi**: `user_id` dan nilai sensor tercatat publik di blockchain (tanpa nama atau email).
+- Percobaan lama sebelum migrasi tidak ikut dicatat di Sepolia.
