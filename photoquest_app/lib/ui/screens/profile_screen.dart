@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
@@ -16,7 +18,11 @@ import '../widgets/user_avatar.dart';
 
 /// Tab Profil: foto profil, nama, email, toggle biometrik, riwayat challenge.
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  const ProfileScreen({super.key, this.shown});
+
+  /// Bertambah setiap kali tab Profil dibuka (dari MainShell). Tab dijaga oleh
+  /// IndexedStack, jadi tanpa sinyal ini riwayat hanya dimuat sekali.
+  final ValueListenable<int>? shown;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -30,15 +36,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _historyError;
   CachedResult<List<ChallengeAttempt>>? _history;
 
+  /// Diganti agar UserAvatar dibuat ulang (muat ulang foto) saat refresh.
+  int _avatarEpoch = 0;
+
   @override
   void initState() {
     super.initState();
+    widget.shown?.addListener(_onShown);
     _loadHistory();
   }
 
-  Future<void> _loadHistory() async {
+  @override
+  void dispose() {
+    widget.shown?.removeListener(_onShown);
+    super.dispose();
+  }
+
+  void _onShown() => _loadHistory(silent: true);
+
+  Future<void> _refresh() {
+    setState(() => _avatarEpoch++);
+    return _loadHistory();
+  }
+
+  /// [silent]: perbarui tanpa spinner bila riwayat sudah tampil.
+  Future<void> _loadHistory({bool silent = false}) async {
     setState(() {
-      _loadingHistory = true;
+      _loadingHistory = !silent || _history == null;
       _historyError = null;
     });
     try {
@@ -79,19 +103,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
     if (source == null) return;
 
-    // Perkecil gambar sebelum upload agar di bawah batas 2 MB backend.
     final picked = await ImagePicker().pickImage(
       source: source,
-      maxWidth: 800,
-      maxHeight: 800,
-      imageQuality: 80,
+      maxWidth: 1600,
+      maxHeight: 1600,
+      imageQuality: 90,
     );
     if (picked == null || !mounted) return;
+
+    // Pengguna memilih bagian foto (rasio 1:1, bingkai bulat) sebelum diunggah.
+    // Hasil diperkecil ke 800 px agar di bawah batas 2 MB backend.
+    final cropped = await ImageCropper().cropImage(
+      sourcePath: picked.path,
+      aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+      maxWidth: 800,
+      maxHeight: 800,
+      compressQuality: 80,
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarTitle: 'Sesuaikan foto profil',
+          toolbarColor: PqPalette.blue,
+          toolbarWidgetColor: Colors.white,
+          activeControlsWidgetColor: PqPalette.blue,
+          cropStyle: CropStyle.circle,
+          initAspectRatio: CropAspectRatioPreset.square,
+          aspectRatioPresets: const [CropAspectRatioPreset.square],
+          lockAspectRatio: true,
+        ),
+      ],
+    );
+    if (cropped == null || !mounted) return; // dibatalkan: foto lama tetap
 
     setState(() => _uploading = true);
     try {
       final user = await context.read<ProfileRepository>().uploadPhoto(
-        picked.path,
+        cropped.path,
       );
       if (!mounted) return;
       await context.read<AuthProvider>().updateUser(user);
@@ -148,7 +194,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(title: const Text('Profil')),
       body: RefreshIndicator(
-        onRefresh: _loadHistory,
+        onRefresh: _refresh,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
@@ -156,7 +202,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Center(
               child: Stack(
                 children: [
-                  UserAvatar(user: user, radius: 56),
+                  UserAvatar(
+                    key: ValueKey(_avatarEpoch),
+                    user: user,
+                    radius: 56,
+                  ),
                   if (_uploading)
                     const Positioned.fill(child: CircularProgressIndicator()),
                   Positioned(

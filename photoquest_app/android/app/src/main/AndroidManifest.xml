@@ -43,6 +43,12 @@
             </intent-filter>
         </activity>
 
+        <!-- image_cropper (uCrop): layar memotong/menyesuaikan foto profil -->
+        <activity
+            android:name="com.yalantis.ucrop.UCropActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"/>
+
         <!-- flutter_local_notifications: receiver untuk notifikasi terjadwal -->
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">

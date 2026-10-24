@@ -19,13 +19,26 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
+  static const _profileIndex = 1;
   static const _logoutIndex = 3;
   int _index = 0;
+
+  /// Memberi tahu tab Profil bahwa ia dibuka lagi (riwayat challenge dimuat ulang).
+  final _profileShown = ValueNotifier<int>(0);
+
+  @override
+  void dispose() {
+    _profileShown.dispose();
+    super.dispose();
+  }
 
   void _onSelect(int index) {
     if (index == _logoutIndex) {
       confirmLogout(context); // index tidak berubah: tetap di tab sebelumnya
       return;
+    }
+    if (index == _profileIndex && _index != _profileIndex) {
+      _profileShown.value++;
     }
     setState(() => _index = index);
   }
@@ -37,7 +50,11 @@ class _MainShellState extends State<MainShell> {
         backgroundColor: Colors.transparent,
         body: IndexedStack(
           index: _index,
-          children: const [HomeTab(), ProfileScreen(), FeedbackScreen()],
+          children: [
+            const HomeTab(),
+            ProfileScreen(shown: _profileShown),
+            const FeedbackScreen(),
+          ],
         ),
         // Nav kaca melayang (satu-satunya panel dengan blur).
         bottomNavigationBar: SafeArea(

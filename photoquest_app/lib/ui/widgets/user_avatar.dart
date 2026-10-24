@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -15,14 +16,22 @@ class UserAvatar extends StatefulWidget {
   final User? user;
   final double radius;
 
+  /// Jeda percobaan ulang pertama saat foto gagal / masih dari cache offline.
+  static const retryBaseDelay = Duration(seconds: 3);
+  static const maxRetries = 6;
+
   @override
   State<UserAvatar> createState() => _UserAvatarState();
 }
 
 class _UserAvatarState extends State<UserAvatar> {
   // Cache sederhana di memori agar foto tidak diunduh ulang setiap pindah tab.
+  // Hanya berisi foto yang benar-benar diunduh dari server (bukan cache HP).
   static final Map<String, Uint8List> _memoryCache = {};
+
   Uint8List? _bytes;
+  int _attempt = 0;
+  Timer? _retryTimer;
 
   @override
   void initState() {
@@ -34,7 +43,18 @@ class _UserAvatarState extends State<UserAvatar> {
   void didUpdateWidget(UserAvatar oldWidget) {
     super.didUpdateWidget(oldWidget);
     // photo_url berubah (?v=...) setelah upload -> muat ulang.
-    if (oldWidget.user?.photoUrl != widget.user?.photoUrl) _load();
+    if (oldWidget.user?.photoUrl != widget.user?.photoUrl) {
+      _retryTimer?.cancel();
+      _retryTimer = null;
+      _attempt = 0;
+      _load();
+    }
+  }
+
+  @override
+  void dispose() {
+    _retryTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -48,12 +68,33 @@ class _UserAvatarState extends State<UserAvatar> {
       return;
     }
     try {
-      final bytes = await context.read<ProfileRepository>().fetchPhoto(url);
-      _memoryCache[url] = bytes;
-      if (mounted) setState(() => _bytes = bytes);
+      final result = await context.read<ProfileRepository>().photo(url);
+      if (!mounted) return;
+      setState(() => _bytes = result.data);
+      if (result.fromCache) {
+        _scheduleRetry(); // offline: tampilkan foto tersimpan, coba lagi nanti
+      } else {
+        _memoryCache[url] = result.data;
+      }
     } catch (_) {
-      if (mounted) setState(() => _bytes = null); // fallback ke inisial
+      // Offline tanpa foto tersimpan / gagal: inisial dulu, coba lagi nanti.
+      if (!mounted) return;
+      setState(() => _bytes = null);
+      _scheduleRetry();
     }
+  }
+
+  /// Muat ulang otomatis dengan jeda bertambah (3, 6, 12, ... detik) agar foto
+  /// muncul sendiri setelah internet kembali, tanpa keluar dari aplikasi.
+  void _scheduleRetry() {
+    if (_retryTimer != null || _attempt >= UserAvatar.maxRetries) return;
+    final delay = UserAvatar.retryBaseDelay * (1 << _attempt);
+    _retryTimer = Timer(delay, () {
+      _retryTimer = null;
+      if (!mounted) return;
+      _attempt++;
+      _load();
+    });
   }
 
   @override
