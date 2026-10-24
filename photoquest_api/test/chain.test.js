@@ -3,6 +3,9 @@
 // jaringan sungguhan.
 process.env.DEMO_MODE = 'true'; // aktifkan endpoint demo untuk tes (sebelum config dimuat)
 
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const { test, describe, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert');
 
@@ -104,16 +107,41 @@ describe('Integrasi: /challenge dan /chain (klien palsu)', () => {
   let auth;
   let fake;
 
+  // retry, pembaruan status, verifikasi, dan demo manipulasi bekerja pada SEMUA baris.
+  // Tes memakai database pengembangan, jadi baris milik pengguna lain disembunyikan
+  // sementara (tx_status = NULL) lalu dikembalikan persis setelah tes. Cadangan juga
+  // ditulis ke file agar bisa dipulihkan bila proses tes terhenti di tengah jalan.
+  const SNAPSHOT = path.join(os.tmpdir(), 'photoquest-chain-test-snapshot.json');
+  let hidden = [];
+
+  async function restoreHidden(rows) {
+    for (const r of rows) {
+      await db.query('UPDATE challenge_attempts SET tx_status = $2 WHERE id = $1', [r.id, r.tx_status]);
+    }
+  }
+
   before(async () => {
+    if (fs.existsSync(SNAPSHOT)) {
+      await restoreHidden(JSON.parse(fs.readFileSync(SNAPSHOT, 'utf8'))); // sisa run yang terhenti
+      fs.unlinkSync(SNAPSHOT);
+    }
     ({ server, baseUrl } = await startServer());
     me = await createTestUser(baseUrl, 'chain');
     auth = { Authorization: `Bearer ${me.token}`, 'Content-Type': 'application/json' };
     chain.setRefreshInterval(0);
+    hidden = (
+      await db.query('SELECT id, tx_status FROM challenge_attempts WHERE tx_status IS NOT NULL AND user_id <> $1', [
+        me.user.id,
+      ])
+    ).rows;
+    fs.writeFileSync(SNAPSHOT, JSON.stringify(hidden));
+    await db.query('UPDATE challenge_attempts SET tx_status = NULL WHERE id = ANY($1::int[])', [hidden.map((r) => r.id)]);
   });
 
   beforeEach(async () => {
     fake = createFakeClient();
     chain.setClient(fake);
+    await chain.idle(); // tunggu pengiriman latar dari tes sebelumnya
     await chain.repairDemo();
     // Mulai bersih: hapus percobaan milik user uji (agar tes saling independen).
     await db.query('DELETE FROM challenge_attempts WHERE user_id = $1', [me.user.id]);
@@ -122,6 +150,8 @@ describe('Integrasi: /challenge dan /chain (klien palsu)', () => {
   after(async () => {
     await chain.repairDemo();
     await deleteTestUser(me.email);
+    await restoreHidden(hidden);
+    fs.rmSync(SNAPSHOT, { force: true });
     server.close();
     await db.pool.end();
   });
