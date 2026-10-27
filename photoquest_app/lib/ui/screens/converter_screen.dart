@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/amount_parser.dart';
 import '../../core/formatters.dart';
 import '../../core/time_zones.dart';
 import '../../data/models/currency.dart';
@@ -68,9 +69,8 @@ class _CurrencyTabState extends State<_CurrencyTab> {
     super.dispose();
   }
 
-  /// "1500000" / "83,5" / "83.5" -> double
-  double? _parse(String text) =>
-      double.tryParse(text.trim().replaceAll(',', '.'));
+  /// "1500000" / "83,5" / "1.000" -> double (aturan di AmountParser); null jika tidak valid.
+  double? _parse(String text) => AmountParser.parse(text).value;
 
   @override
   Widget build(BuildContext context) {
@@ -176,9 +176,10 @@ class _CurrencyTabState extends State<_CurrencyTab> {
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
             ],
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Harga',
               hintText: 'mis. 199,99',
+              errorText: AmountParser.parse(_amountCtrl.text).error,
             ),
             onChanged: (v) => p.setManual(amount: _parse(v) ?? 0),
           ),

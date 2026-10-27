@@ -292,4 +292,55 @@ void main() {
     );
     expect(find.text('¥600'), findsOneWidget); // 75.000 / 125
   });
+
+  testWidgets(
+    'Input manual: angka raksasa ditolak dengan pesan, "1.000" = seribu',
+    (tester) async {
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            Provider<ConverterRepository>.value(
+              value: ConverterRepository(_FakeApi(), _MemoryCache()),
+            ),
+            ChangeNotifierProvider<LocationProvider>.value(
+              value: _FakeLocation(),
+            ),
+            ChangeNotifierProvider(
+              create: (_) => WeatherProvider(_FakeWeatherRepo()),
+            ),
+          ],
+          child: const MaterialApp(home: ConverterScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Input manual'));
+      await tester.pumpAndSettle();
+
+      // 1×10¹⁹ dulu tampil "Rp9.223.372.036.854.775.807" (overflow int64).
+      await tester.enterText(find.byType(TextField), '10000000000000000000');
+      await tester.pumpAndSettle();
+      expect(find.text('Maksimal 999.999.999.999'), findsOneWidget);
+      expect(find.textContaining('9.223'), findsNothing);
+
+      await tester.enterText(find.byType(TextField), '1.2.3');
+      await tester.pumpAndSettle();
+      expect(find.text('Format angka tidak valid'), findsOneWidget);
+
+      // Titik dengan tepat 3 digit di belakangnya = pemisah ribuan, bukan desimal.
+      await tester.enterText(find.byType(TextField), '1.000');
+      await tester.pumpAndSettle();
+      expect(find.text('Maksimal 999.999.999.999'), findsNothing);
+      expect(find.text('Format angka tidak valid'), findsNothing);
+      final list = find.descendant(
+        of: find.byType(ListView),
+        matching: find.byType(Scrollable),
+      );
+      await tester.scrollUntilVisible(
+        find.text('Rp1.000'),
+        200,
+        scrollable: list.first,
+      );
+      expect(find.text('Rp1.000'), findsOneWidget);
+    },
+  );
 }
