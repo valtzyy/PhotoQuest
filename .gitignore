@@ -1,4 +1,17 @@
-# Laporan tugas akhir (dokumen pribadi) - tidak ikut repositori
-docs/*.docx
-docs/Laporan*
-docs/*.pptx
+# Repositori hanya berisi aplikasi (photoquest_app, photoquest_api) dan dokumen deploy.
+# Semua yang lain tetap lokal, tidak ikut commit.
+
+# Laporan, presentasi, dan dokumen pengumpulan
+docs/
+*.zip
+*.pdf
+*.docx
+*.pptx
+
+# Video demo (Remotion)
+photoquest_video/
+
+# Alat bantu AI / editor
+.claude/
+.superpowers/
+skills-lock.json
